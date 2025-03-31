@@ -1,0 +1,12 @@
+let str ="RakeshJella";
+
+function countChars(str){
+    let frqCount = {};
+    for(var i=0;i<str.length;i++){
+        frqCount[str[i]] = (frqCount[str[i]] || 0) +1
+    }
+
+    return Object.entries(frqCount)
+}
+
+console.log(countChars(str))
