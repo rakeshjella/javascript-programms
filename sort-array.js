@@ -14,3 +14,6 @@ function sortArr(arr){
 }
 
 console.log(sortArr(arr))
+
+
+console.log(arr.sort((a,b) => a-b))
