@@ -16,3 +16,7 @@ function findDup(arr){
 }
 
 console.log(findDup(arr))
+
+// or
+
+// console.log([...new Set(arr)])
