@@ -19,5 +19,5 @@ function maxChar(str){
 
     return mostRepated;
 }
-
+console.log(maxChar(str))
 // a
