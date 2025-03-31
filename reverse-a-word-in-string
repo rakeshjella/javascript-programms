@@ -1,0 +1,18 @@
+function rev(str){
+    let splitStr = str.split(' ');
+    let res='';
+    for(var i=0;i<splitStr.length;i++){
+        let word = splitStr[i];
+        for(var j=word.length-1;j>=0;j--){
+            res+=word[j]
+        }
+        if(i<splitStr.length-1){
+            res+= ' '
+        }
+    }
+    
+    return res;
+}
+
+console.log(rev("My name is rakesh jella"))
+// yM eman si hsekar allej
