@@ -10,3 +10,15 @@ function countChars(str){
 }
 
 console.log(countChars(str))
+
+//o/p
+// [
+//     [ 'R', 1 ],
+//     [ 'a', 2 ],
+//     [ 'k', 1 ],
+//     [ 'e', 2 ],
+//     [ 's', 1 ],
+//     [ 'h', 1 ],
+//     [ 'J', 1 ],
+//     [ 'l', 2 ]
+//   ]

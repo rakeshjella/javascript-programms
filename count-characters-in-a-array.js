@@ -9,4 +9,7 @@ function countArrChar(arr){
     return frqCount;
 }
 
-console.log(countArrChar(str))
+console.log(countArrChar(arr))
+
+// o/p
+// { r: 1, a: 1, k: 1, e: 1, s: 1, h: 1 }
