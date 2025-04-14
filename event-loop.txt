@@ -1,0 +1,78 @@
+What is the Event Loop?
+============================
+JavaScript is single-threaded, meaning it can only do one thing at a time. 
+However, it can handle asynchronous operations (like fetching data) without blocking the main thread.
+This magic is made possible by the Event Loop
+
+
+⚙️ How it works (Step-by-Step)
+=============================================
+Let’s break it down into components:
+
+Call Stack: Executes your code line-by-line.
+
+Web APIs: Browser-provided APIs like setTimeout, fetch, DOM events.
+
+Callback Queue (Task Queue): Holds setTimeout, setInterval, DOM event callbacks.
+
+Microtask Queue: Holds .then callbacks from Promises (higher priority).
+
+Event Loop: Keeps checking if the call stack is empty, and pushes tasks from the queue to be executed.
+
+
+📊 Diagram of Event Loop
+Here's a simplified visual of how it works:
+==================================================
+        ┌────────────────────────────┐
+        │        Call Stack         │
+        └────────────┬──────────────┘
+                     │
+         ┌───────────▼────────────┐
+         │      Event Loop        │
+         └───────────┬────────────┘
+                     │
+         ┌───────────▼────────────┐
+         │     Callback Queue     │ ← setTimeout, click, etc.
+         └───────────┬────────────┘
+                     │
+         ┌───────────▼────────────┐
+         │    Microtask Queue     │ ← Promise.then, MutationObserver
+         └────────────────────────┘
+
+
+📦 Example to Show It in Action
+==================================================
+console.log("1");
+
+setTimeout(() => {
+  console.log("2");
+}, 0);
+
+Promise.resolve().then(() => {
+  console.log("3");
+});
+
+console.log("4");
+
+
+Output
+================================================
+1
+4
+3
+2
+
+
+Why?
+==============================================
+
+console.log("1") → goes straight to the call stack.
+
+setTimeout(..., 0) → goes to the callback queue.
+
+Promise.then(...) → goes to the microtask queue.
+
+console.log("4") → goes to the call stack.
+
+After the stack is clear, microtasks run before callback queue, so 3 logs before 2.
+
