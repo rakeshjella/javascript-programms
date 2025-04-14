@@ -1,0 +1,76 @@
+1. Generate Angular App & Components
+===========================================
+ng new counter-app
+cd counter-app
+ng generate component parent
+ng generate component child
+
+2. app.component.html (Root)
+==================================================
+<app-parent></app-parent>
+
+3. parent.component.ts
+====================================
+
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-parent',
+  templateUrl: './parent.component.html',
+})
+export class ParentComponent {
+  count = 0;
+
+  dummyData = [
+    { id: 1, name: 'Item One' },
+    { id: 2, name: 'Item Two' },
+    { id: 3, name: 'Item Three' },
+  ];
+
+  onCountChange(newCount: number) {
+    this.count = newCount;
+  }
+}
+
+
+4. parent.component.html
+===============================
+<h2>Parent Component</h2>
+<p>Current Count: {{ count }}</p>
+
+<!-- List of dummy objects -->
+<ul>
+  <li *ngFor="let item of dummyData">
+    {{ item.id }} - {{ item.name }}
+  </li>
+</ul>
+
+<!-- Child Component -->
+<app-child [count]="count" (countChanged)="onCountChange($event)"></app-child>
+
+
+5. child.component.ts
+=========================
+import { Component, Input, Output, EventEmitter } from '@angular/core';
+
+@Component({
+  selector: 'app-child',
+  templateUrl: './child.component.html',
+})
+export class ChildComponent {
+  @Input() count: number = 0;
+  @Output() countChanged = new EventEmitter<number>();
+
+  increment() {
+    this.count++;
+    this.countChanged.emit(this.count);
+  }
+}
+
+6. child.component.html
+========================================
+<h3>Child Component</h3>
+<p>Count from Parent: {{ count }}</p>
+<button (click)="increment()">Increment Count</button>
+
+
