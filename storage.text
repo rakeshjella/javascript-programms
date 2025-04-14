@@ -1,0 +1,97 @@
+🍪 1. Cookies
+🔹 What it is:
+============================
+Small pieces of data stored in the browser.
+
+Automatically sent to the server with every HTTP request.
+
+Mainly used for authentication, user sessions, etc.
+
+🔹 Features:
+=================================
+Max size: ~4KB
+
+Can have expiry
+
+Accessible from document.cookie
+
+Used in both client and server
+
+🔹 Example:
+
+document.cookie = "username=Rakesh; expires=Fri, 20 Apr 2025 12:00:00 UTC; path=/";
+
+
+💾 2. localStorage
+=======================================
+🔹 What it is:
+Stores data in key-value pairs.
+
+Persists even after browser/tab is closed.
+
+Synchronous & fast for small data.
+
+🔹 Features:
+Max size: ~5–10MB
+
+String-only storage
+
+Not sent to server automatically
+
+🔹 Example:
+
+localStorage.setItem("name", "Rakesh");
+console.log(localStorage.getItem("name")); // "Rakesh"
+
+
+🕒 3. sessionStorage
+============================================================================================
+🔹 What it is:
+Similar to localStorage, but lasts only for the session (i.e., until the tab or window is closed).
+
+🔹 Features:
+Max size: ~5MB
+
+Tab-specific (not shared across tabs)
+
+Also synchronous
+
+🔹 Example:
+
+sessionStorage.setItem("token", "abc123");
+console.log(sessionStorage.getItem("token")); // "abc123"
+
+
+🗃️ 4. IndexedDB
+==================================================
+🔹 What it is:
+A low-level NoSQL database in the browser.
+
+Used for storing large, structured data (like files, objects).
+
+Asynchronous and powerful.
+
+🔹 Features:
+Max size: Hundreds of MBs to GBs (browser-dependent)
+
+Complex data (objects, blobs)
+
+Ideal for offline apps, caching
+
+🔹 Example (simple usage):
+let request = indexedDB.open("MyDatabase", 1);
+
+request.onsuccess = function(event) {
+  let db = event.target.result;
+  console.log("DB opened successfully");
+};
+
+
+📊 Comparison Table
+Feature	            Cookie	        localStorage	    sessionStorage	            IndexedDB
+Max Size	        ~4KB	        ~5–10MB	            ~5MB	                    Hundreds of MB+
+Expiry	            Manual	         No	                 On tab close	            No
+Accessible From	    Client + Server	 Client only	     Client only	            Client only
+Data Type	        String	         String	             String	                    Any (objects, files)
+Sent to Server?	    ✅ Yes	        ❌ No	          ❌ No	                    ❌ No
+Use Case	        Auth, sessions	 Preferences	    Temporary data	            Large structured storage
