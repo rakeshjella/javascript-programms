@@ -1,5 +1,5 @@
 function pal(str) {
-    for(var i=0;i<Math.floor(str.length);i++){
+    for(var i=0;i<Math.floor(str.length/2);i++){
         if(str[i]!==str[str.length-1-i]){
             return false
         }
