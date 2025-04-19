@@ -1,0 +1,35 @@
+<!-- 🔹 What is Debouncing in JavaScript?
+Debouncing is a technique to limit how often a function is executed.
+It ensures that a function is called only once after a certain period of inactivity,
+no matter how many times it's triggered during that time. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    
+    <input type="text" id="search" placeholder="Type to search..." />
+
+    <script>
+        function debounce(fn, delay) {
+            let timer;
+            return function (...args) {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn.apply(this, args), delay);
+            };
+        }
+        const input = document.getElementById("search");
+
+        function handleInput(e) {
+            console.log("API Call for:", e.target.value);
+        }
+
+        const debouncedInput = debounce(handleInput, 500);
+
+        input.addEventListener("input", debouncedInput);
+    </script>
+</body>
+</html>
