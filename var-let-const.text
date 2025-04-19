@@ -1,0 +1,320 @@
+Feature	        var	                                     let	                            const
+Scope	        Function-scoped 	                     Block-scoped	                    Block-scoped
+Hoisting	    ✅ Yes (initializes as undefined)	    ✅ Yes (but not initialized)	     ✅ Yes (but not initialized)
+Reassignment	✅ Yes	                                ✅ Yes	                         ❌ No
+Redeclaration	✅ Yes	                                ❌ No	                         ❌ No
+Use Case	     Legacy code	                          Mutable variables	                 Constants (unchanged refs)
+
+
+🔹 var — Function-scoped & Hoisted
+===================================
+function exampleVar() {
+  console.log(x); // undefined (hoisted)
+  var x = 5;
+  console.log(x); // 5
+}
+exampleVar();
+
+
+if (true) {
+  var a = 10;
+}
+console.log(a); // 10 — not block-scoped!
+
+
+
+🟡 var is function-scoped, not block-scoped — so it can cause bugs in loops or conditionals.
+
+
+🔹 let — Block-scoped
+======================================
+function exampleLet() {
+  // console.log(y); // ❌ ReferenceError: Cannot access before initialization
+  let y = 10;
+  console.log(y); // 10
+}
+exampleLet();
+
+
+if (true) {
+  let b = 20;
+}
+// console.log(b); // ❌ ReferenceError: b is not defined
+
+🟢 let is block-scoped and safer to use for variables that will change.
+
+
+🔹 const — Block-scoped + Cannot Reassign
+=========================================
+
+const z = 30;
+z = 40; // ❌ TypeError: Assignment to constant variable
+
+
+
+const user = { name: "Rakesh" };
+user.name = "Amit"; // ✅ Allowed (object itself is not reassigned)
+
+
+🟢 const is for constants — but remember, objects/arrays declared with const can still be mutated.
+
+
+✅ Best Practices
+Use let when value needs to change
+
+Use const by default
+
+Avoid var unless you're maintaining legacy code
+===============================================================================================================
+
+
+🔁 Reassignment with var
+========================
+var language = "JavaScript";
+console.log(language); // JavaScript
+
+language = "Python";  // ✅ Reassignment allowed
+console.log(language); // Python
+
+✅ var allows reassignment.
+
+🔁 Reassignment with let
+==========================
+let city = "Delhi";
+console.log(city); // Delhi
+
+city = "Mumbai";  // ✅ Reassignment allowed
+console.log(city); // Mumbai
+
+
+🔁 Reassignment with const
+=============================
+const country = "India";
+console.log(country); // India
+
+country = "USA";  // ❌ TypeError: Assignment to constant variable.
+
+❌ const does not allow reassignment of the variable.
+
+⚠️ But Note: const allows mutation of objects and arrays
+===========================
+
+const person = { name: "Rakesh" };
+person.name = "Amit";   // ✅ This works
+console.log(person.name); // Amit
+
+// person = { name: "Another" }; // ❌ TypeError: Assignment to constant variable
+
+
+const fruits = ["apple", "banana"];
+fruits.push("mango");  // ✅ Allowed
+console.log(fruits);   // ['apple', 'banana', 'mango']
+
+// fruits = ["kiwi"];  // ❌ Not allowed (reassignment)
+
+Variable Type	Reassignment Allowed?	Object Mutation Allowed?
+var	            ✅ Yes	                ✅ Yes
+let	            ✅ Yes	                ✅ Yes
+const	        ❌ No	                ✅ Yes (if it's an object/array)
+
+
+🔁 Redeclaration with var
+===========================
+var name = "Rakesh";
+var name = "Amit"; // ✅ No error
+console.log(name); // Amit
+
+
+✅ var allows redeclaring the same variable in the same scope — can lead to bugs.
+
+
+🔁 Redeclaration with let
+===========================
+let city = "Delhi";
+// let city = "Mumbai"; // ❌ SyntaxError: Identifier 'city' has already been declared
+
+{
+    let city = "hyderabad"
+    console.log(city) // hyderabad
+}
+
+console.log(city) // Delhi
+
+
+❌ let does not allow redeclaration in the same scope.
+
+⚠️ Redeclaration in different scopes (allowed)
+
+let x = 10;
+
+if (true) {
+  let x = 20; // ✅ This is fine — block scope is different
+  console.log("Inside block:", x); // 20
+}
+
+console.log("Outside block:", x); // 10
+
+
+🔁 Redeclaration with const
+=============================
+const country = "India";
+// const country = "USA"; // ❌ SyntaxError: Identifier 'country' has already been declared
+❌ const also does not allow redeclaration.
+
+⚠️ Redeclaration in different scopes (allowed)
+const x = 10;
+
+if (true) {
+  const x = 20; // ✅ This is fine — block scope is different
+  console.log("Inside block:", x); // 20
+}
+
+console.log("Outside block:", x); // 10
+
+
+Keyword	    Redeclaration in same scope
+var	        ✅ Allowed
+let	        ❌ Not allowed
+const	    ❌ Not allowed
+
+
+🌑 What is Shadowing?
+====================
+
+Shadowing happens when a variable declared in an inner scope has the same name as a variable in an outer scope.
+The inner variable "shadows" the outer one — it temporarily overrides it within that scope.
+
+✅ Example: Legal Shadowing
+
+let x = 10;
+
+{
+  let x = 20; // ✅ This shadows the outer x
+  console.log("Inside block:", x); // 20
+}
+
+console.log("Outside block:", x); // 10
+
+
+Outer x = 10
+
+Inner block has its own x = 20 (different memory space)
+
+No conflict: ✅ legal shadowing
+
+
+✅ Legal: Shadowing var with let
+-----------------------------------
+var b = 15;
+
+{
+  let b = 25; // ✅ Legal — let in a new block scope
+  console.log("Inside:", b); // 25
+}
+
+console.log("Outside:", b); // 15
+
+This is legal because:
+
+var is global/function scoped
+
+let is block scoped and declared in a new block
+
+❌ What is Illegal Shadowing?
+===============================
+Illegal shadowing happens when a let or const variable is shadowed by var in the same or nested scope, causing a conflict.
+
+❌ Example: Illegal Shadowing (throws error)
+
+let a = 5;
+
+{
+  var a = 10; // ❌ SyntaxError: Identifier 'a' has already been declared
+}
+
+let is block-scoped
+
+var is function/global-scoped, and tries to redeclare a
+
+JavaScript throws a SyntaxError
+
+🔁 Quick Summary
+
+Type	        Legal?	                Explanation
+let             shadowed by let	        ✅	Different block scopes
+var             shadowed by let	        ✅	Different scopes
+let             shadowed by var	        ❌	Causes illegal shadowing
+
+
+
+🔑 What is Scope?
+=======================
+Scope refers to the context or environment in which a variable is declared, and that determines where the variable can be accessed in your code.
+
+Types of Scope in JavaScript:
+------------------------------
+Global Scope: A variable declared outside of any function or block is accessible throughout the entire program.
+
+Function Scope: A variable declared inside a function is only accessible within that function.
+
+Block Scope: A variable declared inside a block (e.g., inside {}) with let or const is only accessible within that block.
+
+Examples of Scope:
+Global Scope:
+------------
+let x = 10;  // Global scope
+
+function test() {
+  console.log(x);  // Can access x from global scope
+}
+
+test();  // Output: 10
+
+Function Scope:
+-------------------
+function myFunction() {
+  let a = 5;  // Function scope
+  console.log(a);  // Can access `a` within the function
+}
+
+myFunction();  // Output: 5
+// console.log(a); // ❌ Error: a is not defined
+
+Block Scope (with let or const)
+---------------------------------
+{
+  let b = 20;  // Block scope
+  console.log(b);  // Output: 20
+}
+// console.log(b);  // ❌ Error: b is not defined
+
+
+🔐 What is Lexical Scope?
+============================
+Lexical scope (or static scope) refers to how JavaScript determines the scope of variables based on where they are physically written in the code (at the time of writing, not at runtime). This means that the location where a function is defined determines its access to variables from the surrounding environment (its "lexical" context).
+
+In simple terms:
+
+A function’s lexical scope is determined by where it is written (the context it’s in) rather than where it is called.
+Example of Lexical Scope:
+
+function outer() {
+  let outerVar = "I am outside";
+
+  function inner() {
+    console.log(outerVar);  // Inner function can access outerVar because of lexical scoping
+  }
+
+  inner();
+}
+
+outer();  // Output: I am outside
+
+How Lexical Scope Works:
+The inner() function can access outerVar, even though outerVar is declared in outer(). 
+This is because of lexical scoping: inner() has access to variables in its lexical (static) context, which is outer().
+
+--------------++++++--------------------
+Scope is the context in which a variable is declared and determines where the variable is accessible in the code (global, function, block, etc.).
+
+Lexical Scope means that the scope of a variable is determined by where the function is written, not where it is called.
