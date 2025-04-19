@@ -1,0 +1,124 @@
+🔍 Debounce vs Throttle
+===========================
+
+
+Feature	            Debounce	                                Throttle
+Behavior	        Waits until a pause to fire	                Fires at regular intervals
+Use Case	        Input fields, search, resize events	        Scroll, drag, mouse move, clicks
+Fires during burst	❌ No	                                   ✅ Yes
+
+
+
+🔹 What is Debouncing in JavaScript?
+Debouncing is a technique used to delay the execution of a function until after a certain amount of time has passed since the last time it was called.
+
+It’s especially useful when a function is triggered too frequently, like:
+
+Typing in a search box
+
+Resizing the browser window
+
+Key presses
+
+Input validation
+
+🎯 Real-Life Analogy
+Imagine you're typing a search query. You don't want to send an API request every time you press a key, right?
+
+Instead, wait until the user stops typing for, say, 300 milliseconds, then send the request. That’s debouncing!
+
+✅ Simple Debounce Function
+function debounce(fn, delay) {
+  let timer;
+  return function (...args) {
+    clearTimeout(timer); // cancel previous timer
+    timer = setTimeout(() => {
+      fn.apply(this, args);
+    }, delay); // wait for delay
+  };
+}
+🔁 Example: Debouncing an Input Box
+<!DOCTYPE html>
+<html>
+  <body>
+    <input type="text" id="search" placeholder="Type to search..." />
+    <script>
+      function debounce(fn, delay) {
+        let timer;
+        return function (...args) {
+          clearTimeout(timer);
+          timer = setTimeout(() => fn.apply(this, args), delay);
+        };
+      }
+
+      function handleInput(event) {
+        console.log("Search Query:", event.target.value);
+      }
+
+      const debouncedInput = debounce(handleInput, 500);
+
+      document.getElementById("search").addEventListener("input", debouncedInput);
+    </script>
+  </body>
+</html>
+
+
+
+🧠 Debounce vs Throttle (Quick Recap)
+
+Feature	                Debounce	                        Throttle
+When it runs	        After a pause	                    At regular intervals
+Use Case	            Input fields, validation, search	Scroll, resize, mouse movement
+Call frequency	        Once after inactivity	            Repeatedly, but at a controlled rate
+
+
+🔹 What is Throttling in JavaScript?
+=============================================
+Throttling is a technique used to limit the number of times a function gets called over time, especially for functions that are triggered continuously or very frequently.
+
+✅ Simple Definition:
+Throttle ensures that a function is only called once every X milliseconds, no matter how many times it's triggered in that time.
+
+🧠 When Do You Use It?
+Throttling is useful for:
+
+Scroll events
+
+Window resize
+
+Mouse move or drag
+
+Button mashing (like upvotes/likes)
+
+These events can fire dozens of times per second, and throttling prevents your function from being overwhelmed.
+
+✅ Real Example:
+function throttle(fn, limit) {
+  let lastCall = 0;
+
+  return function (...args) {
+    const now = Date.now();
+
+    if (now - lastCall >= limit) {
+      lastCall = now;
+      fn.apply(this, args);
+    }
+  };
+}
+📦 Example Use Case: Scroll Throttle
+
+function handleScroll() {
+  console.log("Scroll position:", window.scrollY);
+}
+
+const throttledScroll = throttle(handleScroll, 1000); // only once per 1 sec
+
+window.addEventListener("scroll", throttledScroll);
+
+
+🔁 Quick Comparison: Throttle vs Debounce
+==================================================
+Feature	    Throttle	                Debounce
+Triggers	At regular intervals	    After a period of no activity
+Use Case	scroll, resize, mousemove	search input, button click spam
+Call Timing	Runs every X ms	Runs        after waiting X ms of pause
