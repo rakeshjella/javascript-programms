@@ -1,0 +1,125 @@
+🔹 call()
+==========================================
+Syntax: func.call(thisArg, arg1, arg2, ...)
+
+Purpose: Calls a function with a specific this value and individual arguments.
+
+✅ Example:
+function greet(greeting, punctuation) {
+  console.log(`${greeting}, ${this.name}${punctuation}`);
+}
+
+const person = { name: "Alice" };
+
+greet.call(person, "Hello", "!"); // Hello, Alice!
+
+
+🔹 apply()
+=============================================
+Syntax: func.apply(thisArg, [argsArray])
+
+Purpose: Same as call(), but takes arguments as an array.
+
+✅ Example:
+
+function greet(greeting, punctuation) {
+  console.log(`${greeting}, ${this.name}${punctuation}`);
+}
+
+const person = { name: "Bob" };
+
+greet.apply(person, ["Hi", "."]); // Hi, Bob.
+
+
+🔹 bind()
+===========================================================
+Syntax: const boundFunc = func.bind(thisArg, arg1, arg2, ...)
+
+Purpose: Returns a new function with this bound permanently. It doesn’t call the function immediately.
+
+✅ Example:
+
+function greet(greeting, punctuation) {
+  console.log(`${greeting}, ${this.name}${punctuation}`);
+}
+
+const person = { name: "Charlie" };
+
+const greetCharlie = greet.bind(person, "Hey");
+greetCharlie("?"); // Hey, Charlie?
+
+
+🔁 Summary Table
+
+Method	Calls Function Immediately?         	  Pass Args As	          Returns
+call()	✅ Yes	                                Individual arguments	 Return value
+apply()	✅ Yes	                                Array of arguments	     Return value
+bind()	❌ No	                                Can pre-fill arguments	 New bound function
+
+
+Real time examples
+=======================================
+🔹 call() — Borrowing Methods Between Objects
+✅ Real-World Example: Reusing a method
+
+const user1 = {
+  name: "Rakesh",
+  greet: function () {
+    console.log(`Hello, I'm ${this.name}`);
+  },
+};
+
+const user2 = {
+  name: "Amit",
+};
+
+user1.greet.call(user2); // Hello, I'm Amit
+
+Why use it?
+You're borrowing the greet() method from user1 and calling it with user2 as this.
+
+
+
+🔹 apply() — Math.max on an Array
+=================================================
+✅ Real-World Example: Finding max in array
+
+const numbers = [23, 45, 67, 89];
+
+const max = Math.max.apply(null, numbers);
+console.log(max); // 89
+
+Why use it?
+Math.max() doesn't accept an array directly, so apply() helps spread it out
+
+
+🔹 bind() — Fixing this in Event Handlers
+==============================================
+✅ Real-World Example: React-like event handler or button click
+
+function Counter() {
+  this.count = 0;
+
+  this.increment = function () {
+    this.count++;
+    console.log(this.count);
+  };
+
+  const button = document.createElement("button");
+  button.textContent = "Click Me";
+  document.body.appendChild(button);
+
+  // Without bind, 'this' would be the button element
+  button.addEventListener("click", this.increment.bind(this));
+}
+
+const c = new Counter();
+
+
+Why use it?
+To make sure this inside increment() still refers to the Counter instance, not the button element.
+
+Method	Real Use Case
+call()	Borrowing a method from another object
+apply()	Using built-in functions like Math.max on arrays
+bind()	Preserving this context in callbacks (e.g., DOM events, setTimeout, etc.)
