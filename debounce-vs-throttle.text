@@ -1,25 +1,13 @@
-🔍 Debounce vs Throttle
-===========================
-
-
-Feature	            Debounce	                                Throttle
-Behavior	        Waits until a pause to fire	                Fires at regular intervals
-Use Case	        Input fields, search, resize events	        Scroll, drag, mouse move, clicks
-Fires during burst	❌ No	                                   ✅ Yes
-
-
 
 🔹 What is Debouncing in JavaScript?
+============================================
 Debouncing is a technique used to delay the execution of a function until after a certain amount of time has passed since the last time it was called.
 
 It’s especially useful when a function is triggered too frequently, like:
 
 Typing in a search box
-
 Resizing the browser window
-
 Key presses
-
 Input validation
 
 🎯 Real-Life Analogy
@@ -122,3 +110,14 @@ Feature	    Throttle	                Debounce
 Triggers	At regular intervals	    After a period of no activity
 Use Case	scroll, resize, mousemove	search input, button click spam
 Call Timing	Runs every X ms	Runs        after waiting X ms of pause
+
+
+
+🔍 Debounce vs Throttle
+===========================
+
+
+Feature	            Debounce	                                Throttle
+Behavior	        Waits until a pause to fire	                Fires at regular intervals
+Use Case	        Input fields, search, resize events	        Scroll, drag, mouse move, clicks
+Fires during burst	❌ No	                                   ✅ Yes
