@@ -1,0 +1,151 @@
+Event bubbling
+===================
+Event bubbling is a concept in the DOM (Document Object Model) where an event triggered on a child element bubbles up to its parent elements.
+This means that if an event handler is attached to a parent, and a child triggers the event, the parent handler will also be triggered (unless stopped).
+
+🔄 How It Works:
+Imagine you click on a button inside a <div>. The event doesn't just stop at the button—it "bubbles" up and also triggers any handlers on the <div>, and then up the DOM tree.
+
+✅ Example in HTML + JavaScript
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Event Bubbling Example</title>
+</head>
+<body>
+  <div id="parent" style="padding: 20px; background-color: lightblue;">
+    Parent DIV
+    <button id="child">Click Me</button>
+  </div>
+
+  <script>
+    document.getElementById('parent').addEventListener('click', function() {
+      alert('Parent DIV clicked');
+    });
+
+    document.getElementById('child').addEventListener('click', function(event) {
+      alert('Button clicked');
+      // event.stopPropagation(); // Uncomment this to stop bubbling
+    });
+  </script>
+</body>
+</html>
+
+🧪 What Happens When You Click the Button:
+Button clicked alert shows.
+
+Then Parent DIV clicked alert shows (because the event bubbles up).
+
+🛑 To Stop Event Bubbling:
+Use event.stopPropagation() in the child event handler:
+
+event.stopPropagation();
+This prevents the event from reaching the parent.
+
+🔁 What is Event Capturing?
+=============================
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+Event capturing (also known as trickling) is a phase in the event flow where the event starts from the outermost element (like <html> or <body>) and trickles down to the target element (the one that was actually interacted with).
+
+In simple terms:
+
+Capturing Phase ➡️ Target Phase ➡️ Bubbling Phase
+
+Most event handlers in JavaScript use the bubbling phase by default, but you can specify to use capturing instead.
+
+✅ Example (HTML + JavaScript)
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Event Capturing Example</title>
+</head>
+<body>
+  <div id="parent" style="padding: 20px; background-color: lightgreen;">
+    Parent DIV
+    <button id="child">Click Me</button>
+  </div>
+
+  <script>
+    document.getElementById('parent').addEventListener('click', function() {
+      alert('Parent DIV clicked (Capturing)');
+    }, true); // ✅ Use 'true' to enable capturing
+
+    document.getElementById('child').addEventListener('click', function() {
+      alert('Button clicked');
+    }, false); // false means bubbling (default)
+  </script>
+</body>
+</html>
+
+
+🧪 What Happens When You Click the Button:
+Parent DIV clicked (Capturing) shows first ✅
+
+Then Button clicked shows ✅
+
+That's capturing in action — the outer element (parent) gets the event first before the target (button).
+
+📌 Key Differences: Bubbling vs Capturing
+
+Aspect	            Bubbling	                     Capturing
+Order	            Target ➡️ Parent	            Parent ➡️ Target
+Default Behavior	Yes (default)	                No (must enable manually)
+Use Case	        Common in most event handling	Used in rare edge cases
+
+
+🔁 What is Event Delegation?
+====>>>><<<<<<==============
+Event delegation is a technique where you attach a single event listener to a parent element instead of multiple child elements.
+The event uses bubbling to "reach" the parent, and you detect which child triggered it using event.target.
+
+🧠 Why Use It?
+✅ Better performance (especially for many elements)
+
+🔄 Works with dynamically added elements
+
+🧼 Cleaner, more maintainable code
+
+✅ Example: List with Clickable Items
+
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Event Delegation Example</title>
+</head>
+<body>
+  <ul id="myList">
+    <li>Item 1</li>
+    <li>Item 2</li>
+    <li>Item 3</li>
+  </ul>
+
+  <script>
+    document.getElementById('myList').addEventListener('click', function(event) {
+      // Check if the clicked target is an <li>
+      if (event.target.tagName === 'LI') {
+        alert('You clicked: ' + event.target.textContent);
+      }
+    });
+  </script>
+</body>
+</html>
+
+
+🔄 What Happens Here:
+The click event is set on the <ul> (parent).
+
+When any <li> is clicked, the event bubbles up.
+
+The handler checks if the clicked item is an <li> using event.target.
+
+🪄 Bonus: Adding New Items Dynamically (Still Works!)
+>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+const newItem = document.createElement('li');
+newItem.textContent = 'Item 4';
+document.getElementById('myList').appendChild(newItem);
+
+You don't need to add a new event listener—event delegation handles it perfectly. 🔥
