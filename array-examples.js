@@ -29,12 +29,18 @@ console.log('for loop sort', arr)
 //     { name: 'ram', age: 36 }
 //   ]
 
-let incAgeWithObj = arr.map(i => ({name:i,age:i.age+1}))
-console.log(incAge)
-// [
-//     { name: { name: 'rak', age: 29 }, age: 30 },
-//     { name: { name: 'raj', age: 20 }, age: 21 },
-//     { name: { name: 'ram', age: 36 }, age: 37 }
+
+let updatedAges = arr.map(person => ({
+    ...person,
+    age: person.age + 1
+  }));
+  
+  console.log(updatedAges);
+
+//   [
+//     { name: 'rak', age: 30 },
+//     { name: 'raj', age: 21 },
+//     { name: 'ram', age: 37 }
 //   ]
 
 let seniorAgePerson = arr.filter(i=>i.age>30)
