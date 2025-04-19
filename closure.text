@@ -1,0 +1,64 @@
+🔐 What is a Closure in JavaScript?
+====================================
+A closure is a function that remembers the variables from its outer scope even after that scope has finished executing.
+
+✅ Simple Example
+===================
+function outer() {
+  let count = 0;
+
+  return function inner() {
+    count++;
+    console.log("Count:", count);
+  };
+}
+
+const counter = outer();
+
+counter(); // Count: 1
+counter(); // Count: 2
+counter(); // Count: 3
+
+
+🔍 What’s Happening Here?
+
+outer() runs and returns inner().
+inner() is a closure because it "remembers" the count variable from its outer scope even after outer() has finished.
+Every time counter() is called, it still has access to the same count variable.
+
+
+🎯 Real-World Use Case: Private Variables
+Closures help create private data in JavaScript.
+==================================================
+
+function createBankAccount() {
+  let balance = 1000; // private variable
+
+  return {
+    deposit: function (amount) {
+      balance += amount;
+      console.log(`Deposited: ${amount}, New Balance: ${balance}`);
+    },
+    withdraw: function (amount) {
+      if (amount > balance) {
+        console.log("Insufficient funds");
+      } else {
+        balance -= amount;
+        console.log(`Withdrawn: ${amount}, New Balance: ${balance}`);
+      }
+    },
+    getBalance: function () {
+      return balance;
+    },
+  };
+}
+
+const account = createBankAccount();
+account.deposit(500);     // Deposited: 500, New Balance: 1500
+account.withdraw(300);    // Withdrawn: 300, New Balance: 1200
+console.log(account.getBalance()); // 1200
+
+
+Why it works:
+balance is not accessible directly outside the function — only the returned methods can interact with it, thanks to closure.
+
