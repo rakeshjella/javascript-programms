@@ -1,0 +1,203 @@
+What is XSS (Cross-Site Scripting)?
+------------------------------------->
+XSS is a type of security vulnerability where an attacker injects malicious scripts (usually JavaScript) into a web page.
+If your app renders user input directly into the DOM without proper handling, the attacker’s script can execute in your users’ browsers — stealing data, hijacking sessions, etc.
+
+Example of XSS Attack: If your app does something like this:
+
+<div v-html="userInput"></div>
+
+and userInput is:
+
+<script>alert('You have been hacked!')</script>
+
+then the script will actually run on the page!
+
+How to Handle XSS in Vue.js (Composition API style)?
+Vue by default is pretty safe — if you use normal {{ userInput }}, Vue escapes the HTML for you.
+
+✅ Safe example:
+
+<template>
+  <div>{{ userInput }}</div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const userInput = ref('<script>alert("hack")</script>') 
+// This will just render the text, not execute the script
+</script>
+
+BUT — if you use v-html, you must sanitize the input manually!
+
+How to safely use v-html with sanitization
+If you must render HTML, use a sanitizer like DOMPurify.
+
+Example:
+npm install dompurify
+
+
+Now in your Vue component:
+
+<template>
+  <div v-html="safeHtml"></div>
+</template>
+
+<script setup>
+import { ref, computed } from 'vue'
+import DOMPurify from 'dompurify'
+
+const dirtyHtml = ref('<img src=x onerror=alert("XSS")> Hello!')
+
+// Always sanitize before using v-html
+const safeHtml = computed(() => DOMPurify.sanitize(dirtyHtml.value))
+</script>
+
+✅ Now even if someone tries to inject bad stuff, it gets stripped out safely.
+
+Quick Summary:
+Prefer {{ userInput }} → Vue auto-escapes it.
+
+Avoid v-html unless absolutely necessary.
+
+If you use v-html, sanitize the content with something like DOMPurify.
+
+Always validate and sanitize user inputs on the server-side too!
+
+
+Let’s make a clean Vue composable called useSanitize that you can reuse anywhere you need to sanitize user inputs.
+-------------------------------------------------------------------------------------------------------------------
+
+Step 1: Install DOMPurify if not done yet
+npm install dompurify
+
+Step 2: Create the useSanitize.js composable
+Inside your src/composables/ folder (or wherever you keep composables), create a file:
+
+// src/composables/useSanitize.js
+
+import { computed } from 'vue'
+import DOMPurify from 'dompurify'
+
+export function useSanitize(dirtyContent) {
+  const sanitizedContent = computed(() => {
+    return DOMPurify.sanitize(dirtyContent.value)
+  })
+
+  return { sanitizedContent }
+}
+🔵 What’s happening?
+
+dirtyContent is a ref you pass (it must be reactive).
+
+sanitizedContent is a computed version that is safe and clean.
+
+Step 3: Use it inside a Vue component
+
+<template>
+  <div v-html="sanitizedContent"></div>
+
+  <input v-model="userInput" placeholder="Type something..." />
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { useSanitize } from '@/composables/useSanitize'
+
+const userInput = ref('')
+
+const { sanitizedContent } = useSanitize(userInput)
+</script>
+
+How it behaves:
+As the user types into the input, the raw input goes into userInput.
+
+sanitizedContent auto-updates with the safe version.
+
+Even if someone tries something bad like:
+<img src=x onerror=alert('XSS')>
+— it gets cleaned before rendering!
+
+Bonus tip:
+If you want even more control (like allowing only <b>, <i> tags), you can configure DOMPurify inside useSanitize easily:
+DOMPurify.sanitize(dirtyContent.value, { ALLOWED_TAGS: ['b', 'i', 'u'] })
+
+
+how to make a global Vue directive called v-sanitize to automatically sanitize any HTML content — no extra manual work in each component!
+----------------------------------------------------------------------------------------------------------------------------------------
+Step 1: Create the directive
+Make a file:
+src/directives/sanitize.js
+
+Put this inside:
+// src/directives/sanitize.js
+import DOMPurify from 'dompurify'
+
+export const sanitizeDirective = {
+  beforeMount(el, binding) {
+    el.innerHTML = DOMPurify.sanitize(binding.value)
+  },
+  updated(el, binding) {
+    el.innerHTML = DOMPurify.sanitize(binding.value)
+  }
+}
+🔵 Explanation:
+
+binding.value is whatever value you pass into v-sanitize.
+
+It sanitizes and sets the cleaned HTML into the element’s innerHTML.
+
+It works both when the element mounts and when it updates!
+
+Step 2: Register the directive globally
+In your main.js or main.ts (where you create the Vue app):
+import { createApp } from 'vue'
+import App from './App.vue'
+import { sanitizeDirective } from './directives/sanitize'
+
+const app = createApp(App)
+
+app.directive('sanitize', sanitizeDirective)
+
+app.mount('#app')
+
+Step 3: Use v-sanitize in your components
+Now it’s super easy:
+
+<template>
+  <div v-sanitize="userInput"></div>
+  <input v-model="userInput" placeholder="Type some HTML..." />
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const userInput = ref('')
+</script>
+
+✅ Now whatever you bind into v-sanitize will automatically be cleaned.
+
+No need to write computed properties or call DOMPurify manually every time anymore!
+
+Quick comparison:
+
+Without v-sanitize	                                                With v-sanitize
+Need to manually sanitize in script	                                Auto-clean by just adding v-sanitize
+More boilerplate	                                                Less code, cleaner templates
+Risky if you forget to sanitize	                                    Much safer by default
+
+
+If you want to customize what is allowed, you can pass options:
+
+const cleanHtml = computed(() => {
+  return DOMPurify.sanitize(dirtyHtml.value, {
+    ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a'],
+    ALLOWED_ATTR: ['href']
+  })
+})
+
+
+
+Would you also like me to show an enhanced version that allows you to pass custom options to the directive?
+(Example: "allow only <b> and <i> tags in this specific div", etc.) 
