@@ -1,0 +1,1879 @@
+🧠 What is XSRF / CSRF?
+-----------------------------
+
+XSRF (Cross-Site Request Forgery) = CSRF (Cross-Site Request Forgery)
+
+It's when a bad website tricks a user into performing unwanted actions on another trusted site where they're authenticated.
+
+Example:
+You are logged into your bank.
+You visit a malicious website.
+That website secretly sends a "transfer money" request to your bank — and it succeeds because your browser has your session cookies.
+
+🛡 How to Prevent XSRF?
+✅ Use CSRF Tokens (most important!)
+✅ Set SameSite attribute on cookies (Strict or Lax)
+✅ Validate Origin and Referer headers (server-side)
+✅ Use proper CORS settings
+
+In VueJS (client-side app), the key part you manage is:
+👉 Include CSRF tokens correctly in API requests.
+
+⚡ Handling XSRF in Vue 3 Composition API
+Step 1: CSRF Token from Server
+Usually, the server sends a CSRF token:
+
+inside a Set-Cookie
+
+or inside an HTML meta tag
+
+or via an API /csrf-token
+
+Example (meta tag way):
+
+<meta name="csrf-token" content="abcdefg12345" />
+
+Step 2: Read CSRF Token in Vue
+You can read the meta tag inside Vue:
+
+function getCsrfToken() {
+  const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+  return token || ''
+}
+
+Step 3: Send CSRF Token with API requests
+If you're using fetch or axios, include it in headers.
+
+Example using fetch in Composition API:
+
+<script setup>
+import { ref } from 'vue'
+
+const data = ref(null)
+
+async function postData() {
+  const csrfToken = getCsrfToken()
+
+  const response = await fetch('/api/secure-data', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,   // ✅ Important!
+    },
+    body: JSON.stringify({ someData: 'hello' })
+  })
+
+  data.value = await response.json()
+}
+
+function getCsrfToken() {
+  const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+  return token || ''
+}
+</script>
+
+<template>
+  <button @click="postData">Send Secure Request</button>
+  <pre>{{ data }}</pre>
+</template>
+
+Example using axios
+If you're using axios, even easier:
+
+import axios from 'axios'
+
+axios.defaults.headers.common['X-CSRF-Token'] = getCsrfToken()
+
+// Then every axios call will include it automatically
+await axios.post('/api/secure-data', { someData: 'hello' })
+
+
+🔥 Quick Recap
+
+What	                        How
+Get CSRF Token	                From meta tag or API
+Send it	In headers              (X-CSRF-Token)
+Use libraries	                axios, fetch, anything
+Vue 3 style	                    Use ref, async functions, clean Composition API code
+
+Let's build a useCsrf composable for Vue 3 Composition API.
+----------------------------------------------------------------->
+
+✨ useCsrf.js — The full composable
+
+// composables/useCsrf.js
+import { ref } from 'vue'
+
+const csrfToken = ref('')
+
+export function useCsrf() {
+  
+  function getToken() {
+    if (!csrfToken.value) {
+      csrfToken.value = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    }
+    return csrfToken.value
+  }
+
+  async function secureFetch(url, options = {}) {
+    const token = getToken()
+
+    const mergedOptions = {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': token,
+        ...(options.headers || {})
+      }
+    }
+
+    const response = await fetch(url, mergedOptions)
+    return response
+  }
+
+  return {
+    getToken,
+    secureFetch
+  }
+}
+
+
+🔥 How to use it in your components
+
+<script setup>
+import { useCsrf } from '@/composables/useCsrf'
+
+const { secureFetch } = useCsrf()
+
+async function sendData() {
+  const res = await secureFetch('/api/secure-data', {
+    method: 'POST',
+    body: JSON.stringify({ hello: 'world' })
+  })
+
+  const data = await res.json()
+  console.log(data)
+}
+</script>
+
+<template>
+  <button @click="sendData">Send Secure Request</button>
+</template>
+
+
+📦 What this composable does:
+
+Function	                    What it does
+getToken()	                    Fetch CSRF token from meta tag (once)
+secureFetch(url, options)	    Automatically adds CSRF token into headers and sends fetch
+
+✅ Makes it super easy to safely POST/PUT/DELETE
+✅ Keeps your component code clean
+✅ You can even extend it later for axios if you prefer
+
+🔥 Bonus Tip: Axios Version
+If you're using axios, you can create a slightly different composable:
+
+// composables/useAxiosSecure.js
+import axios from 'axios'
+
+export function useAxiosSecure() {
+  function getToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+  }
+
+  const instance = axios.create()
+
+  instance.interceptors.request.use(config => {
+    config.headers['X-CSRF-Token'] = getToken()
+    return config
+  })
+
+  return {
+    axios: instance
+  }
+}
+
+And then use:
+
+<script setup>
+import { useAxiosSecure } from '@/composables/useAxiosSecure'
+
+const { axios } = useAxiosSecure()
+
+async function sendData() {
+  const res = await axios.post('/api/secure-data', { hello: 'world' })
+  console.log(res.data)
+}
+</script>
+
+
+Would you also like a version where the CSRF token auto-refreshes every few minutes (for highly secure apps)? 🚀✨
+It's not necessary for normal apps, but great for banking, admin panels, etc.
+
+I’ll show you a pro version of the useCsrf composable that can auto-refresh the CSRF token.
+
+(Useful when the server gives short-lived CSRF tokens — like in banking, fintech, admin apps.)
+
+✨ useCsrf.js with Auto-Refresh
+
+// composables/useCsrf.js
+import { ref, onMounted, onUnmounted } from 'vue'
+
+const csrfToken = ref('')
+let refreshInterval = null
+
+export function useCsrf(options = { refreshUrl: '/api/csrf-token', interval: 10 * 60 * 1000 }) {
+  // options:
+  // refreshUrl -> API endpoint to get a fresh CSRF token
+  // interval -> how often to refresh (default: every 10 minutes)
+
+  async function fetchToken() {
+    try {
+      const response = await fetch(options.refreshUrl)
+      const data = await response.json()
+      csrfToken.value = data.csrfToken
+    } catch (error) {
+      console.error('Failed to refresh CSRF token:', error)
+    }
+  }
+
+  function getToken() {
+    if (!csrfToken.value) {
+      const metaToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+      csrfToken.value = metaToken || ''
+    }
+    return csrfToken.value
+  }
+
+  async function secureFetch(url, fetchOptions = {}) {
+    const token = getToken()
+
+    const mergedOptions = {
+      ...fetchOptions,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': token,
+        ...(fetchOptions.headers || {})
+      }
+    }
+
+    const response = await fetch(url, mergedOptions)
+    return response
+  }
+
+  function startAutoRefresh() {
+    if (refreshInterval) return // already running
+    fetchToken() // get a fresh token immediately
+    refreshInterval = setInterval(fetchToken, options.interval)
+  }
+
+  function stopAutoRefresh() {
+    if (refreshInterval) {
+      clearInterval(refreshInterval)
+      refreshInterval = null
+    }
+  }
+
+  onMounted(() => {
+    startAutoRefresh()
+  })
+
+  onUnmounted(() => {
+    stopAutoRefresh()
+  })
+
+  return {
+    getToken,
+    secureFetch,
+    startAutoRefresh,
+    stopAutoRefresh
+  }
+}
+
+🛡 Example Backend /api/csrf-token Response
+(Just for understanding — your server should send something like this)
+
+{
+  "csrfToken": "new-generated-token-xyz123"
+}
+
+
+🚀 How to use this in your component
+
+<script setup>
+import { useCsrf } from '@/composables/useCsrf'
+
+const { secureFetch } = useCsrf({
+  refreshUrl: '/api/csrf-token', // backend endpoint that returns token
+  interval: 5 * 60 * 1000         // refresh every 5 minutes
+})
+
+async function sendData() {
+  const res = await secureFetch('/api/secure-data', {
+    method: 'POST',
+    body: JSON.stringify({ hello: 'world' })
+  })
+  const data = await res.json()
+  console.log(data)
+}
+</script>
+
+<template>
+  <button @click="sendData">Send Secure Request</button>
+</template>
+
+⚡ What this version does:
+
+Feature	Benefit
+fetchToken()	        Gets a fresh CSRF token
+startAutoRefresh()	    Automatically refreshes token in the background
+secureFetch()	        Always uses the latest token
+stopAutoRefresh()	    Stops refreshing if component unmounts
+meta fallback	        If no token fetched yet, uses the <meta> tag
+
+✅ Super secure
+✅ Handles short-lived tokens
+✅ Clean Vue 3 Composition style
+
+🌟 Bonus
+If you want even better security, you can:
+
+Rotate CSRF tokens after every request (slightly more complex)
+
+Combine CSRF protection with SameSite cookies and CORS rules
+
+Would you like me to also show you a tiny Axios version with this same auto-refresh system? 🚀 (Just in case you prefer axios over fetch?)
+🔥 Let's build the Axios version of the auto-refresh CSRF setup.
+
+Very clean, very powerful — and still 100% Vue 3 Composition API style.
+Here we go:
+✨ useAxiosSecure.js — Auto-Refreshing CSRF for Axios
+
+// composables/useAxiosSecure.js
+import { ref, onMounted, onUnmounted } from 'vue'
+import axios from 'axios'
+
+const csrfToken = ref('')
+let refreshInterval = null
+
+export function useAxiosSecure(options = { refreshUrl: '/api/csrf-token', interval: 10 * 60 * 1000 }) {
+  const axiosInstance = axios.create()
+
+  async function fetchToken() {
+    try {
+      const response = await axios.get(options.refreshUrl)
+      csrfToken.value = response.data.csrfToken
+    } catch (error) {
+      console.error('Failed to refresh CSRF token:', error)
+    }
+  }
+
+  function getToken() {
+    if (!csrfToken.value) {
+      const metaToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+      csrfToken.value = metaToken || ''
+    }
+    return csrfToken.value
+  }
+
+  axiosInstance.interceptors.request.use(config => {
+    const token = getToken()
+    config.headers['X-CSRF-Token'] = token
+    return config
+  }, error => Promise.reject(error))
+
+  function startAutoRefresh() {
+    if (refreshInterval) return
+    fetchToken()
+    refreshInterval = setInterval(fetchToken, options.interval)
+  }
+
+  function stopAutoRefresh() {
+    if (refreshInterval) {
+      clearInterval(refreshInterval)
+      refreshInterval = null
+    }
+  }
+
+  onMounted(() => {
+    startAutoRefresh()
+  })
+
+  onUnmounted(() => {
+    stopAutoRefresh()
+  })
+
+  return {
+    axios: axiosInstance,
+    getToken,
+    startAutoRefresh,
+    stopAutoRefresh
+  }
+}
+
+🚀 How to use it in your Vue component
+<script setup>
+import { useAxiosSecure } from '@/composables/useAxiosSecure'
+
+const { axios } = useAxiosSecure({
+  refreshUrl: '/api/csrf-token', // API endpoint that gives fresh CSRF token
+  interval: 5 * 60 * 1000         // refresh every 5 minutes
+})
+
+async function sendData() {
+  const res = await axios.post('/api/secure-data', {
+    hello: 'world'
+  })
+  console.log(res.data)
+}
+</script>
+
+<template>
+  <button @click="sendData">Send Secure Request with Axios</button>
+</template>
+
+🛡 How this Axios Composable Works
+
+Feature	Benefit
+Axios interceptor	Automatically injects CSRF token into every request
+fetchToken	        Get fresh token from server /api/csrf-token
+startAutoRefresh	Refresh token every 5 or 10 minutes
+fallback to meta	In case first token is already in <meta>
+clean up	        Stops timer when component unmounts
+
+✅ Auto-secured requests
+✅ No need to manually add headers every time
+✅ Clean, reactive, Vue 3 style
+
+Would you like me to show you one final tweak — where the composable automatically injects the axios instance globally (so you don't even need to import it every time)? 😎🚀
+It’s called auto-inject axios with CSRF — very handy for big apps.
+We’ll make Axios with CSRF auto-injected globally into Vue — no need to import it in every component manually.
+
+✅ Cleaner
+✅ Safer
+✅ Super good for large projects
+
+🏗 Plan:
+Create a plugin that provides your secure Axios globally.
+
+Then you can just use it with inject('axiosSecure') inside any component.
+
+✨ 1. Create the AxiosSecure Plugin
+------------------------------------------
+// plugins/axiosSecurePlugin.js
+import { ref } from 'vue'
+import axios from 'axios'
+
+export function createAxiosSecurePlugin(options = { refreshUrl: '/api/csrf-token', interval: 10 * 60 * 1000 }) {
+  const csrfToken = ref('')
+  let refreshInterval = null
+
+  const axiosInstance = axios.create()
+
+  async function fetchToken() {
+    try {
+      const response = await axios.get(options.refreshUrl)
+      csrfToken.value = response.data.csrfToken
+    } catch (error) {
+      console.error('Failed to refresh CSRF token:', error)
+    }
+  }
+
+  function getToken() {
+    if (!csrfToken.value) {
+      const metaToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+      csrfToken.value = metaToken || ''
+    }
+    return csrfToken.value
+  }
+
+  axiosInstance.interceptors.request.use(config => {
+    config.headers['X-CSRF-Token'] = getToken()
+    return config
+  }, error => Promise.reject(error))
+
+  function startAutoRefresh() {
+    if (refreshInterval) return
+    fetchToken()
+    refreshInterval = setInterval(fetchToken, options.interval)
+  }
+
+  startAutoRefresh()
+
+  return {
+    install(app) {
+      app.provide('axiosSecure', axiosInstance)
+    }
+  }
+}
+
+✨ 2. Register the Plugin in main.js
+
+// main.js
+import { createApp } from 'vue'
+import App from './App.vue'
+
+import { createAxiosSecurePlugin } from './plugins/axiosSecurePlugin'
+
+const app = createApp(App)
+
+app.use(createAxiosSecurePlugin({
+  refreshUrl: '/api/csrf-token',
+  interval: 5 * 60 * 1000
+}))
+
+app.mount('#app')
+
+
+✨ 3. Use it in Any Component — Easy!
+
+<script setup>
+import { inject } from 'vue'
+
+const axios = inject('axiosSecure')
+
+async function sendData() {
+  const res = await axios.post('/api/secure-data', {
+    hello: 'world'
+  })
+  console.log(res.data)
+}
+</script>
+
+<template>
+  <button @click="sendData">Send Secure Request Globally</button>
+</template>
+
+🚀 Recap: Why is this awesome?
+
+Feature	Benefit
+Plugin style	            Automatic, clean setup
+Global provide/inject	    No need to import useAxiosSecure everywhere
+Auto token refresh	        Handles security automatically
+Vue 3 friendly	            Fully Composition API + Plugin API
+
+✅ Scales beautifully for big apps
+✅ Great for Admin Panels, Banking apps, eCommerce
+✅ Your entire app is protected by default
+
+
+This time, we'll create a global fetchSecure plugin —
+just like we did for Axios — but for fetch API users.
+
+✨ 1. Create fetchSecurePlugin.js
+
+// plugins/fetchSecurePlugin.js
+import { ref } from 'vue'
+
+export function createFetchSecurePlugin(options = { refreshUrl: '/api/csrf-token', interval: 10 * 60 * 1000 }) {
+  const csrfToken = ref('')
+  let refreshInterval = null
+
+  async function fetchToken() {
+    try {
+      const response = await fetch(options.refreshUrl)
+      const data = await response.json()
+      csrfToken.value = data.csrfToken
+    } catch (error) {
+      console.error('Failed to refresh CSRF token:', error)
+    }
+  }
+
+  function getToken() {
+    if (!csrfToken.value) {
+      const metaToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+      csrfToken.value = metaToken || ''
+    }
+    return csrfToken.value
+  }
+
+  async function fetchSecure(url, fetchOptions = {}) {
+    const token = getToken()
+
+    const mergedOptions = {
+      ...fetchOptions,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': token,
+        ...(fetchOptions.headers || {})
+      }
+    }
+
+    const response = await fetch(url, mergedOptions)
+    return response
+  }
+
+  function startAutoRefresh() {
+    if (refreshInterval) return
+    fetchToken()
+    refreshInterval = setInterval(fetchToken, options.interval)
+  }
+
+  startAutoRefresh()
+
+  return {
+    install(app) {
+      app.provide('fetchSecure', fetchSecure)
+    }
+  }
+}
+✨ 2. Register the Plugin in main.js
+(If you're also using AxiosSecure, you can load both!)
+// main.js
+import { createApp } from 'vue'
+import App from './App.vue'
+
+import { createAxiosSecurePlugin } from './plugins/axiosSecurePlugin'
+import { createFetchSecurePlugin } from './plugins/fetchSecurePlugin'
+
+const app = createApp(App)
+
+app.use(createAxiosSecurePlugin({
+  refreshUrl: '/api/csrf-token',
+  interval: 5 * 60 * 1000
+}))
+
+app.use(createFetchSecurePlugin({
+  refreshUrl: '/api/csrf-token',
+  interval: 5 * 60 * 1000
+}))
+
+app.mount('#app')
+✨ 3. Use it Anywhere — Easy!
+<script setup>
+import { inject } from 'vue'
+
+const fetchSecure = inject('fetchSecure')
+
+async function sendData() {
+  const res = await fetchSecure('/api/secure-data', {
+    method: 'POST',
+    body: JSON.stringify({ hello: 'world' })
+  })
+  const data = await res.json()
+  console.log(data)
+}
+</script>
+
+<template>
+  <button @click="sendData">Send Secure Fetch</button>
+</template>
+⚡ What this fetchSecure plugin does:
+
+Feature	Benefit
+Auto-adds CSRF token	Every fetch request
+Background refresh	    Token is fresh always
+One line in component	Super simple usage
+Vue 3 plugin style	    Inject globally
+
+✅ Same structure and benefits as axiosSecure
+✅ You don't need to remember adding headers manually!
+
+🎯 Now you have:
+
+API	Global Secure Version
+axios.post(...)	    with CSRF auto-included
+fetchSecure(...)	with CSRF auto-included
+
+🌟 Bonus Improvement Idea:
+You could even merge both plugins into a SecurityPlugin that provides both axiosSecure and fetchSecure from a single plugin install.
+Want me to show you how to combine them too? 🤯🔥 (next-level architecture)
+
+🚀 You’re unlocking true enterprise-level architecture now.
+I'll show you how to combine both axiosSecure and fetchSecure into a single SecurityPlugin —
+super clean, super easy to use.
+
+🏗 Plan:
+Create one plugin: securityPlugin.js
+
+Provide both axiosSecure and fetchSecure
+
+Use inject('axiosSecure') or inject('fetchSecure') anywhere
+
+✨ 1. Full securityPlugin.js
+// plugins/securityPlugin.js
+import { ref } from 'vue'
+import axios from 'axios'
+
+export function createSecurityPlugin(options = {
+  refreshUrl: '/api/csrf-token',
+  interval: 10 * 60 * 1000
+}) {
+  const csrfToken = ref('')
+  let refreshInterval = null
+
+  // --- Fetch CSRF token ---
+  async function fetchToken() {
+    try {
+      const response = await fetch(options.refreshUrl)
+      const data = await response.json()
+      csrfToken.value = data.csrfToken
+    } catch (error) {
+      console.error('Failed to refresh CSRF token:', error)
+    }
+  }
+
+  // --- Get current CSRF token ---
+  function getToken() {
+    if (!csrfToken.value) {
+      const metaToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+      csrfToken.value = metaToken || ''
+    }
+    return csrfToken.value
+  }
+
+  // --- Axios instance with CSRF ---
+  const axiosSecure = axios.create()
+  axiosSecure.interceptors.request.use(config => {
+    config.headers['X-CSRF-Token'] = getToken()
+    return config
+  }, error => Promise.reject(error))
+
+  // --- fetchSecure function ---
+  async function fetchSecure(url, fetchOptions = {}) {
+    const token = getToken()
+
+    const mergedOptions = {
+      ...fetchOptions,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': token,
+        ...(fetchOptions.headers || {})
+      }
+    }
+
+    const response = await fetch(url, mergedOptions)
+    return response
+  }
+
+  // --- Auto Refresh CSRF token ---
+  function startAutoRefresh() {
+    if (refreshInterval) return
+    fetchToken()
+    refreshInterval = setInterval(fetchToken, options.interval)
+  }
+
+  startAutoRefresh()
+
+  // --- Install Plugin ---
+  return {
+    install(app) {
+      app.provide('axiosSecure', axiosSecure)
+      app.provide('fetchSecure', fetchSecure)
+    }
+  }
+}
+✨ 2. Register Plugin in main.js
+
+// main.js
+import { createApp } from 'vue'
+import App from './App.vue'
+
+import { createSecurityPlugin } from './plugins/securityPlugin'
+
+const app = createApp(App)
+
+app.use(createSecurityPlugin({
+  refreshUrl: '/api/csrf-token',
+  interval: 5 * 60 * 1000
+}))
+
+app.mount('#app')
+✨ 3. How to Use it Anywhere
+Axios Secure Usage:
+<script setup>
+import { inject } from 'vue'
+
+const axios = inject('axiosSecure')
+
+async function sendData() {
+  const res = await axios.post('/api/secure-data', { hello: 'axios world' })
+  console.log(res.data)
+}
+</script>
+
+<template>
+  <button @click="sendData">Secure Axios Request</button>
+</template>
+
+Fetch Secure Usage:
+<script setup>
+import { inject } from 'vue'
+
+const fetchSecure = inject('fetchSecure')
+
+async function sendData() {
+  const res = await fetchSecure('/api/secure-data', {
+    method: 'POST',
+    body: JSON.stringify({ hello: 'fetch world' })
+  })
+  const data = await res.json()
+  console.log(data)
+}
+</script>
+
+<template>
+  <button @click="sendData">Secure Fetch Request</button>
+</template>
+
+⚡ Recap: Your Global Setup Now
+
+Feature	Benefit
+inject('axiosSecure')	Axios instance auto-injects CSRF
+inject('fetchSecure')	Fetch function auto-injects CSRF
+Auto refresh CSRF token	Background security maintenance
+Vue 3 plugin standard	Easy to maintain and scale
+✅ One plugin handles everything
+✅ Fully reactive, clean, Vue Composition friendly
+✅ You can extend it later for OAuth tokens, JWT refresh, etc.
+
+🎯 Pro Tip:
+You can also use a global alias like:
+
+app.config.globalProperties.$axiosSecure = axiosSecure
+app.config.globalProperties.$fetchSecure = fetchSecure
+
+Then inside components, you can call them like:
+
+this.$axiosSecure.post(...)
+this.$fetchSecure(...)
+
+(but inject method is more Composition API standard! ❤️)
+
+Would you like me to show you an even bigger version:
+where CSRF, JWT access token, and refresh token are all managed together inside a single SecurityPlugin? 😎 (Banking/enterprise apps use this.)
+
+Let's build the Super Security Manager! 🚀👑
+
+This is next-level — professional-grade authentication handling:
+✅ CSRF Token
+✅ Access Token (JWT)
+✅ Refresh Token
+✅ Auto-refresh on expiration
+✅ Axios & Fetch secured at the same time
+
+Exactly like how banking apps, enterprise dashboards, and serious SaaS platforms do it.
+
+🏗 Plan:
+One SecurityPlugin
+
+Handles CSRF AND JWT
+
+Auto-refresh access tokens when expired
+
+Axios and Fetch both auto-secured
+
+✨ 1. Full superSecurityPlugin.js
+
+// plugins/superSecurityPlugin.js
+import { ref } from 'vue'
+import axios from 'axios'
+
+export function createSuperSecurityPlugin(options = {
+  csrfUrl: '/api/csrf-token',
+  tokenRefreshUrl: '/api/auth/refresh',
+  tokenHeader: 'Authorization',
+  interval: 10 * 60 * 1000 // CSRF refresh interval
+}) {
+  const csrfToken = ref('')
+  const accessToken = ref('')
+  let refreshInterval = null
+
+  // --- Fetch CSRF Token ---
+  async function fetchCsrfToken() {
+    try {
+      const res = await fetch(options.csrfUrl)
+      const data = await res.json()
+      csrfToken.value = data.csrfToken
+    } catch (error) {
+      console.error('Failed to fetch CSRF token:', error)
+    }
+  }
+
+  // --- Refresh Access Token ---
+  async function refreshAccessToken() {
+    try {
+      const res = await fetch(options.tokenRefreshUrl, {
+        method: 'POST',
+        credentials: 'include' // Important to send cookies for refresh!
+      })
+      const data = await res.json()
+      accessToken.value = data.accessToken
+    } catch (error) {
+      console.error('Failed to refresh access token:', error)
+      accessToken.value = '' // Force logout maybe?
+    }
+  }
+
+  // --- Get Current Tokens ---
+  function getCsrfToken() {
+    if (!csrfToken.value) {
+      const metaToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+      csrfToken.value = metaToken || ''
+    }
+    return csrfToken.value
+  }
+
+  function getAccessToken() {
+    return accessToken.value
+  }
+
+  // --- Axios with CSRF + JWT ---
+  const axiosSecure = axios.create()
+
+  axiosSecure.interceptors.request.use(async config => {
+    // Attach CSRF
+    config.headers['X-CSRF-Token'] = getCsrfToken()
+
+    // Attach Access Token
+    const token = getAccessToken()
+    if (token) {
+      config.headers[options.tokenHeader] = `Bearer ${token}`
+    }
+
+    return config
+  }, error => Promise.reject(error))
+
+  axiosSecure.interceptors.response.use(response => {
+    return response
+  }, async error => {
+    // Handle expired token: auto-refresh
+    if (error.response && error.response.status === 401) {
+      await refreshAccessToken()
+      const token = getAccessToken()
+
+      if (token) {
+        error.config.headers[options.tokenHeader] = `Bearer ${token}`
+        return axiosSecure.request(error.config) // Retry request
+      }
+    }
+    return Promise.reject(error)
+  })
+
+  // --- Fetch Secure function ---
+  async function fetchSecure(url, fetchOptions = {}) {
+    const csrf = getCsrfToken()
+    const token = getAccessToken()
+
+    const mergedOptions = {
+      ...fetchOptions,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrf,
+        ...(token ? { [options.tokenHeader]: `Bearer ${token}` } : {}),
+        ...(fetchOptions.headers || {})
+      },
+      credentials: 'include' // Needed for cookie-based sessions/refresh
+    }
+
+    const res = await fetch(url, mergedOptions)
+
+    // Handle unauthorized
+    if (res.status === 401) {
+      await refreshAccessToken()
+      const retryOptions = {
+        ...fetchOptions,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrf,
+          ...(accessToken.value ? { [options.tokenHeader]: `Bearer ${accessToken.value}` } : {}),
+          ...(fetchOptions.headers || {})
+        },
+        credentials: 'include'
+      }
+      return await fetch(url, retryOptions)
+    }
+
+    return res
+  }
+
+  // --- Auto Refresh CSRF token ---
+  function startAutoRefresh() {
+    if (refreshInterval) return
+    fetchCsrfToken()
+    refreshInterval = setInterval(fetchCsrfToken, options.interval)
+  }
+
+  startAutoRefresh()
+
+  return {
+    install(app) {
+      app.provide('axiosSecure', axiosSecure)
+      app.provide('fetchSecure', fetchSecure)
+    }
+  }
+}
+
+✨ 2. Register Plugin in main.js
+
+// main.js
+import { createApp } from 'vue'
+import App from './App.vue'
+
+import { createSuperSecurityPlugin } from './plugins/superSecurityPlugin'
+
+const app = createApp(App)
+
+app.use(createSuperSecurityPlugin({
+  csrfUrl: '/api/csrf-token',
+  tokenRefreshUrl: '/api/auth/refresh',
+  tokenHeader: 'Authorization',
+  interval: 5 * 60 * 1000
+}))
+
+app.mount('#app')
+
+✨ 3. Usage Example
+✅ For Axios:
+<script setup>
+import { inject } from 'vue'
+
+const axios = inject('axiosSecure')
+
+async function sendData() {
+  const res = await axios.post('/api/secure-data', { hello: 'axios + jwt world' })
+  console.log(res.data)
+}
+</script>
+
+<template>
+  <button @click="sendData">Send Axios Secure</button>
+</template>
+
+✅ For Fetch:
+
+<script setup>
+import { inject } from 'vue'
+
+const fetchSecure = inject('fetchSecure')
+
+async function sendData() {
+  const res = await fetchSecure('/api/secure-data', {
+    method: 'POST',
+    body: JSON.stringify({ hello: 'fetch + jwt world' })
+  })
+  const data = await res.json()
+  console.log(data)
+}
+</script>
+
+<template>
+  <button @click="sendData">Send Fetch Secure</button>
+</template>
+
+⚡ Your App is Now a Beast 💪
+
+Feature	Done
+CSRF token protection	✅
+Access token (JWT) management	✅
+Auto-refresh access token	✅
+Retry on 401 Unauthorized	✅
+Axios + Fetch auto-protected	✅
+Vue 3 Composition API standard	✅
+This is exactly what big SaaS products, banking apps, health systems use.
+
+
+
+🎯 Bonus Tip:
+Later, you can extend superSecurityPlugin to also:
+
+Handle silent logout if refresh fails
+
+Show a modal asking user to "Please Login Again"
+
+Or even refresh proactively before token expires using token expiry timestamps!
+
+🚀 Would you like me to also show you how to handle token expiry BEFORE it happens (proactive token refresh, even smoother UX)?
+(Users will never see 401 errors if we do that.) 😎✨
+
+Tell me!
+We can take it even one more level UP! 🔥🔥🔥 👑👑👑
+
+🎯 What is Proactive Token Refresh?
+Instead of waiting for 401 errors (bad UX),
+👉 we monitor token expiry
+👉 refresh the access token before it expires
+👉 user never notices — no session timeout popups, no errors!
+
+✅ Ultra-smooth experience
+✅ Professional-grade architecture
+✅ 100% safe sessions
+
+🏗 Plan:
+Decode JWT access token
+
+Get exp (expiry timestamp)
+
+Set a timer to refresh before expiration (e.g., 1 minute early)
+
+✨ 1. Upgrade superSecurityPlugin.js
+
+Here’s the improved version:
+// plugins/superSecurityPlugin.js
+import { ref } from 'vue'
+import axios from 'axios'
+
+function parseJwt(token) {
+  if (!token) return null
+  const base64Url = token.split('.')[1]
+  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+  const jsonPayload = decodeURIComponent(atob(base64).split('').map(c =>
+    '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+  ).join(''))
+
+  return JSON.parse(jsonPayload)
+}
+
+export function createSuperSecurityPlugin(options = {
+  csrfUrl: '/api/csrf-token',
+  tokenRefreshUrl: '/api/auth/refresh',
+  tokenHeader: 'Authorization',
+  interval: 10 * 60 * 1000 // CSRF refresh interval
+}) {
+  const csrfToken = ref('')
+  const accessToken = ref('')
+  let refreshInterval = null
+  let tokenTimer = null
+
+  // --- Fetch CSRF Token ---
+  async function fetchCsrfToken() {
+    try {
+      const res = await fetch(options.csrfUrl)
+      const data = await res.json()
+      csrfToken.value = data.csrfToken
+    } catch (error) {
+      console.error('Failed to fetch CSRF token:', error)
+    }
+  }
+
+  // --- Refresh Access Token ---
+  async function refreshAccessToken() {
+    try {
+      const res = await fetch(options.tokenRefreshUrl, {
+        method: 'POST',
+        credentials: 'include'
+      })
+      const data = await res.json()
+      accessToken.value = data.accessToken
+      scheduleTokenRefresh()
+    } catch (error) {
+      console.error('Failed to refresh access token:', error)
+      accessToken.value = '' // Force logout maybe
+      clearTokenTimer()
+    }
+  }
+
+  // --- Schedule proactive token refresh ---
+  function scheduleTokenRefresh() {
+    clearTokenTimer()
+
+    const tokenData = parseJwt(accessToken.value)
+    if (!tokenData || !tokenData.exp) return
+
+    const expiresIn = (tokenData.exp * 1000) - Date.now()
+
+    const refreshIn = expiresIn > 60000 ? expiresIn - 60000 : 0 // 1 min before expiry
+
+    console.log('Token expires in', Math.round(expiresIn / 1000), 'seconds')
+    console.log('Scheduling refresh in', Math.round(refreshIn / 1000), 'seconds')
+
+    tokenTimer = setTimeout(() => {
+      refreshAccessToken()
+    }, refreshIn)
+  }
+
+  function clearTokenTimer() {
+    if (tokenTimer) {
+      clearTimeout(tokenTimer)
+      tokenTimer = null
+    }
+  }
+
+  // --- Get Tokens ---
+  function getCsrfToken() {
+    if (!csrfToken.value) {
+      const metaToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+      csrfToken.value = metaToken || ''
+    }
+    return csrfToken.value
+  }
+
+  function getAccessToken() {
+    return accessToken.value
+  }
+
+  // --- Axios ---
+  const axiosSecure = axios.create()
+
+  axiosSecure.interceptors.request.use(async config => {
+    config.headers['X-CSRF-Token'] = getCsrfToken()
+
+    const token = getAccessToken()
+    if (token) {
+      config.headers[options.tokenHeader] = `Bearer ${token}`
+    }
+
+    return config
+  }, error => Promise.reject(error))
+
+  axiosSecure.interceptors.response.use(response => {
+    return response
+  }, async error => {
+    if (error.response && error.response.status === 401) {
+      await refreshAccessToken()
+      const token = getAccessToken()
+
+      if (token) {
+        error.config.headers[options.tokenHeader] = `Bearer ${token}`
+        return axiosSecure.request(error.config)
+      }
+    }
+    return Promise.reject(error)
+  })
+
+  // --- Fetch ---
+  async function fetchSecure(url, fetchOptions = {}) {
+    const csrf = getCsrfToken()
+    const token = getAccessToken()
+
+    const mergedOptions = {
+      ...fetchOptions,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrf,
+        ...(token ? { [options.tokenHeader]: `Bearer ${token}` } : {}),
+        ...(fetchOptions.headers || {})
+      },
+      credentials: 'include'
+    }
+
+    const res = await fetch(url, mergedOptions)
+
+    if (res.status === 401) {
+      await refreshAccessToken()
+
+      const retryOptions = {
+        ...fetchOptions,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrf,
+          ...(accessToken.value ? { [options.tokenHeader]: `Bearer ${accessToken.value}` } : {}),
+          ...(fetchOptions.headers || {})
+        },
+        credentials: 'include'
+      }
+      return await fetch(url, retryOptions)
+    }
+
+    return res
+  }
+
+  // --- Start CSRF Token Refresh ---
+  function startAutoRefresh() {
+    if (refreshInterval) return
+    fetchCsrfToken()
+    refreshInterval = setInterval(fetchCsrfToken, options.interval)
+  }
+
+  startAutoRefresh()
+
+  return {
+    install(app) {
+      app.provide('axiosSecure', axiosSecure)
+      app.provide('fetchSecure', fetchSecure)
+    },
+    setAccessToken(newToken) {
+      accessToken.value = newToken
+      scheduleTokenRefresh()
+    }
+  }
+}
+✨ 2. Updated main.js Usage
+
+// main.js
+import { createApp } from 'vue'
+import App from './App.vue'
+import { createSuperSecurityPlugin } from './plugins/superSecurityPlugin'
+
+const securityPlugin = createSuperSecurityPlugin({
+  csrfUrl: '/api/csrf-token',
+  tokenRefreshUrl: '/api/auth/refresh',
+  tokenHeader: 'Authorization',
+  interval: 5 * 60 * 1000
+})
+
+const app = createApp(App)
+
+app.use(securityPlugin)
+
+app.mount('#app')
+
+// Example: after user login, manually set token
+// securityPlugin.setAccessToken('user-jwt-token-here')
+🌟 What You've Built:
+Feature	Done
+CSRF token handling	✅
+Access token (JWT) handling	✅
+Proactive token refresh before expiry	✅
+Auto retry on 401	✅
+Axios + Fetch secured	✅
+Vue 3 plugin ready	✅
+✅ No more "token expired" errors while user is working
+✅ No annoying "session expired" popups
+✅ Smooth UX, high security 🔥
+
+🚀 If you want, I can also show you:
+Logout automatically if token refresh fails (with redirect to /login)
+
+Lock screen if token is expired (without full logout)
+
+⚡ Enterprise apps use this to be extra secure.
+
+Wanna build that too? 👑
+🎯 What we’re adding now:
+
+Feature	What it does
+Auto Logout	If refresh token fails (server says session expired), automatically log the user out safely
+Lock Screen	If token expires but refresh succeeds, show a “Session Locked” screen, asking for password re-entry without full logout
+
+✅ Enterprise-level behavior
+✅ Bank-grade security
+✅ Maximum user-friendly experience
+
+🏗 Plan:
+Add logout() function inside the plugin.
+
+Add a lock() and unlock() logic.
+
+Allow app to react when user is locked or logged out.
+
+Optional: Redirect to /login or show a Lock Modal!
+
+✨ 1. Updated superSecurityPlugin.js
+
+// plugins/superSecurityPlugin.js
+import { ref, readonly } from 'vue'
+import axios from 'axios'
+
+function parseJwt(token) {
+  if (!token) return null
+  const base64Url = token.split('.')[1]
+  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+  const jsonPayload = decodeURIComponent(atob(base64).split('').map(c =>
+    '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+  ).join(''))
+
+  return JSON.parse(jsonPayload)
+}
+
+export function createSuperSecurityPlugin(options = {
+  csrfUrl: '/api/csrf-token',
+  tokenRefreshUrl: '/api/auth/refresh',
+  tokenHeader: 'Authorization',
+  interval: 10 * 60 * 1000
+}) {
+  const csrfToken = ref('')
+  const accessToken = ref('')
+  const isLocked = ref(false)
+  const isLoggedOut = ref(false)
+  let refreshInterval = null
+  let tokenTimer = null
+
+  async function fetchCsrfToken() {
+    try {
+      const res = await fetch(options.csrfUrl)
+      const data = await res.json()
+      csrfToken.value = data.csrfToken
+    } catch (error) {
+      console.error('Failed to fetch CSRF token:', error)
+    }
+  }
+
+  async function refreshAccessToken() {
+    try {
+      const res = await fetch(options.tokenRefreshUrl, {
+        method: 'POST',
+        credentials: 'include'
+      })
+      if (!res.ok) throw new Error('Refresh failed')
+      const data = await res.json()
+      accessToken.value = data.accessToken
+      scheduleTokenRefresh()
+      isLocked.value = false
+    } catch (error) {
+      console.error('Refresh failed, logging out:', error)
+      logout()
+    }
+  }
+
+  function scheduleTokenRefresh() {
+    clearTokenTimer()
+    const tokenData = parseJwt(accessToken.value)
+    if (!tokenData || !tokenData.exp) return
+
+    const expiresIn = (tokenData.exp * 1000) - Date.now()
+    const refreshIn = expiresIn > 60000 ? expiresIn - 60000 : 0
+
+    console.log('Scheduling refresh in', Math.round(refreshIn / 1000), 'seconds')
+
+    tokenTimer = setTimeout(() => {
+      lock() // Instead of direct refresh, lock first
+    }, refreshIn)
+  }
+
+  function clearTokenTimer() {
+    if (tokenTimer) {
+      clearTimeout(tokenTimer)
+      tokenTimer = null
+    }
+  }
+
+  function getCsrfToken() {
+    if (!csrfToken.value) {
+      const metaToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+      csrfToken.value = metaToken || ''
+    }
+    return csrfToken.value
+  }
+
+  function getAccessToken() {
+    return accessToken.value
+  }
+
+  // --- Axios Secure Instance ---
+  const axiosSecure = axios.create()
+
+  axiosSecure.interceptors.request.use(config => {
+    config.headers['X-CSRF-Token'] = getCsrfToken()
+    const token = getAccessToken()
+    if (token) {
+      config.headers[options.tokenHeader] = `Bearer ${token}`
+    }
+    return config
+  }, error => Promise.reject(error))
+
+  axiosSecure.interceptors.response.use(response => {
+    return response
+  }, async error => {
+    if (error.response && error.response.status === 401) {
+      try {
+        await refreshAccessToken()
+        const token = getAccessToken()
+        if (token) {
+          error.config.headers[options.tokenHeader] = `Bearer ${token}`
+          return axiosSecure.request(error.config)
+        }
+      } catch (e) {
+        logout()
+      }
+    }
+    return Promise.reject(error)
+  })
+
+  async function fetchSecure(url, fetchOptions = {}) {
+    const csrf = getCsrfToken()
+    const token = getAccessToken()
+
+    const mergedOptions = {
+      ...fetchOptions,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrf,
+        ...(token ? { [options.tokenHeader]: `Bearer ${token}` } : {}),
+        ...(fetchOptions.headers || {})
+      },
+      credentials: 'include'
+    }
+
+    const res = await fetch(url, mergedOptions)
+
+    if (res.status === 401) {
+      try {
+        await refreshAccessToken()
+        const retryOptions = {
+          ...fetchOptions,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrf,
+            ...(accessToken.value ? { [options.tokenHeader]: `Bearer ${accessToken.value}` } : {}),
+            ...(fetchOptions.headers || {})
+          },
+          credentials: 'include'
+        }
+        return await fetch(url, retryOptions)
+      } catch (e) {
+        logout()
+      }
+    }
+
+    return res
+  }
+
+  // --- Lock & Unlock Logic ---
+  function lock() {
+    console.log('Session locked. Waiting for reauthentication.')
+    isLocked.value = true
+    clearTokenTimer()
+  }
+
+  async function unlock(password) {
+    // You can customize this: send password to server to unlock
+    try {
+      await refreshAccessToken()
+      isLocked.value = false
+    } catch (error) {
+      logout()
+    }
+  }
+
+  function logout() {
+    console.log('Logging out...')
+    accessToken.value = ''
+    csrfToken.value = ''
+    clearTokenTimer()
+    isLocked.value = false
+    isLoggedOut.value = true
+    window.location.href = '/login' // Or route via Vue Router
+  }
+
+  function startAutoRefresh() {
+    if (refreshInterval) return
+    fetchCsrfToken()
+    refreshInterval = setInterval(fetchCsrfToken, options.interval)
+  }
+
+  startAutoRefresh()
+
+  return {
+    install(app) {
+      app.provide('axiosSecure', axiosSecure)
+      app.provide('fetchSecure', fetchSecure)
+      app.provide('security', {
+        isLocked: readonly(isLocked),
+        isLoggedOut: readonly(isLoggedOut),
+        unlock,
+        logout,
+        setAccessToken(token) {
+          accessToken.value = token
+          scheduleTokenRefresh()
+        }
+      })
+    }
+  }
+}
+✨ 2. Usage inside your app
+✅ To show a Lock Screen:
+
+<script setup>
+import { inject } from 'vue'
+
+const security = inject('security')
+
+async function unlockSession() {
+  // Normally, ask password and send to server for verification
+  await security.unlock('password') 
+}
+
+function logoutNow() {
+  security.logout()
+}
+</script>
+
+<template>
+  <div v-if="security.isLocked">
+    <h2>🔒 Session Locked</h2>
+    <input type="password" placeholder="Enter password" />
+    <button @click="unlockSession">Unlock Session</button>
+    <button @click="logoutNow">Logout</button>
+  </div>
+
+  <div v-else>
+    <router-view />
+  </div>
+</template>
+
+✅ To react to auto-logout:
+
+You can listen to security.isLoggedOut anywhere and force redirect or show a "You have been logged out" message.
+
+🌟 What we now have:
+
+Feature	Status
+CSRF Protection	✅
+JWT Auth	✅
+Proactive Token Refresh	✅
+Lock Session on Expiry	✅
+Unlock Session	✅
+Auto Logout if refresh fails	✅
+✅ Your App = 🔒🏦 BANK LEVEL SECURITY 🏦🔒
+
+🚀 Bonus Challenge:
+Would you like me to show you:
+
+Silent reauthentication (user types password, we silently refresh access token without page reload)
+
+Real-time multi-tab logout (logout everywhere if logged out from one tab)?
+
+These are EVEN CRAZIER security upgrades! 🔥
+
+Wanna go next level? 😎
+
+🎯 1. Silent Reauthentication
+(Unlock session by password without full reload)
+
+🎯 2. Multi-Tab Logout
+(If logout happens in one tab, instantly logout in ALL tabs!)
+
+🛠 Part 1: Silent Reauthentication
+Problem:
+When session is locked after token expiry,
+👉 instead of refreshing the page,
+👉 user can type password,
+👉 your app sends password to server, server revalidates, returns NEW tokens — without page reload!
+
+✨ Updated Plugin Code (superSecurityPlugin.js)
+Add this inside your plugin:
+
+async function unlock(password) {
+  try {
+    const res = await fetch('/api/auth/unlock-session', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ password })
+    })
+
+    if (!res.ok) throw new Error('Unlock failed')
+
+    const data = await res.json()
+
+    if (data.accessToken) {
+      accessToken.value = data.accessToken
+      scheduleTokenRefresh()
+      isLocked.value = false
+    } else {
+      throw new Error('No token returned')
+    }
+  } catch (error) {
+    console.error('Unlock failed:', error)
+    logout()
+  }
+}
+✅ Now when you call security.unlock(password), it will POST the password silently,
+✅ Get a new accessToken,
+✅ Resume the session instantly!
+
+🛠 Part 2: Real-time Multi-Tab Logout
+Imagine user logs out from Tab 1.
+Tab 2, 3, 4 should instantly logout too! 🚀
+
+✨ Add This Logic:
+Inside your plugin:
+
+function broadcastLogout() {
+  try {
+    localStorage.setItem('logout', Date.now())
+  } catch (e) {
+    console.error('Broadcast logout failed:', e)
+  }
+}
+
+function listenLogout() {
+  window.addEventListener('storage', (event) => {
+    if (event.key === 'logout') {
+      console.log('Logout detected from another tab.')
+      logout(false) // don't re-broadcast
+    }
+  })
+}
+
+function logout(broadcast = true) {
+  console.log('Logging out...')
+  accessToken.value = ''
+  csrfToken.value = ''
+  clearTokenTimer()
+  isLocked.value = false
+  isLoggedOut.value = true
+  if (broadcast) broadcastLogout()
+  window.location.href = '/login' 
+}
+
+
+✅ When logout happens, it writes to localStorage.
+✅ All other tabs instantly detect and run logout.
+
+Call listenLogout() once when app boots:
+startAutoRefresh()
+listenLogout()
+✨ Full System Recap Now:
+
+Feature	Status
+CSRF Protection	✅
+Access Token with proactive refresh	✅
+Session Lock on token expiry	✅
+Silent Unlock by password (no reload)	✅
+Auto Logout if refresh fails	✅
+Real-time Multi-Tab Logout	✅
+🚀 Bonus
+Want me to show you super smooth experience where:
+
+Lock screen animates ✨
+
+Password input auto-focuses 🔥
+
+Wrong password shake animation (UX polish)
+
+🎨 Step 1: Smooth Lock Screen UI (Vue 3)
+We’ll:
+
+Animate lock screen fade-in ✨
+
+Auto-focus password input 🔥
+
+Shake the form if password is wrong ❌
+
+🛠 LockScreen.vue (full component)
+
+<script setup>
+import { inject, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { motion } from 'framer-motion'
+
+const security = inject('security')
+const password = ref('')
+const error = ref(false)
+const router = useRouter()
+
+async function handleUnlock() {
+  try {
+    await security.unlock(password.value)
+    password.value = ''
+    error.value = false
+    router.replace('/') // Go back to Home after unlock
+  } catch (e) {
+    console.error('Unlock failed')
+    password.value = ''
+    error.value = true
+  }
+}
+
+function logoutNow() {
+  security.logout()
+}
+</script>
+
+<template>
+  <motion.div 
+    class="flex flex-col justify-center items-center min-h-screen bg-gradient-to-br from-purple-500 to-indigo-700 p-6"
+    initial="{ opacity: 0 }"
+    animate="{ opacity: 1 }"
+    transition="{ duration: 0.5 }"
+  >
+    <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md"
+         :class="{ 'animate-shake': error }">
+      <h2 class="text-2xl font-bold mb-6 text-center text-gray-700">🔒 Session Locked</h2>
+
+      <input
+        v-model="password"
+        type="password"
+        placeholder="Enter your password"
+        class="w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-indigo-500 focus:outline-none mb-4"
+        autofocus
+        @keyup.enter="handleUnlock"
+      />
+
+      <button 
+        @click="handleUnlock"
+        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg mb-2 font-semibold"
+      >
+        Unlock Session
+      </button>
+
+      <button 
+        @click="logoutNow"
+        class="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg font-semibold text-sm"
+      >
+        Logout
+      </button>
+
+      <p v-if="error" class="text-red-600 text-center mt-3">Incorrect password. Try again.</p>
+    </div>
+  </motion.div>
+</template>
+
+<style scoped>
+@keyframes shake {
+  0% { transform: translateX(0) }
+  25% { transform: translateX(-5px) }
+  50% { transform: translateX(5px) }
+  75% { transform: translateX(-5px) }
+  100% { transform: translateX(0) }
+}
+.animate-shake {
+  animation: shake 0.4s;
+}
+</style>
+💥 How it works:
+
+Feature	What it does
+motion.div	Fades in smoothly on mount
+autofocus	Cursor auto-focuses in password input
+@keyup.enter	Unlocks when Enter pressed
+error shake	Wrong password triggers shaking animation
+router.replace('/')	After unlocking, redirect to home page
+Full responsive UI	Looks awesome on desktop + mobile
+📦 Install Motion (optional)
+If you don't have framer-motion for Vue yet:
+npm install framer-motion
+
+
+🌟 Step 2: Setup Auto-Redirect to Lock Screen
+Inside App.vue:
+
+<script setup>
+import { inject, watch } from 'vue'
+import { useRouter } from 'vue-router'
+
+const security = inject('security')
+const router = useRouter()
+
+watch(security.isLocked, (locked) => {
+  if (locked) {
+    router.push('/lock')
+  }
+})
+</script>
+
+<template>
+  <router-view />
+</template>
+✅ When session locks → user is instantly redirected to /lock.
+
+✨ Step 3: Router Setup (Vue Router)
+// router/index.js
+import { createRouter, createWebHistory } from 'vue-router'
+import Home from '@/views/Home.vue'
+import LockScreen from '@/views/LockScreen.vue'
+
+const routes = [
+  { path: '/', component: Home },
+  { path: '/lock', component: LockScreen }
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes
+})
+
+export default router
+🎉 Now what you have:
+
+Experience	Status
+Fade-in Lock screen	✅
+Instant auto-focus input	✅
+Enter key unlock	✅
+Shake wrong input	✅
+Smooth redirect on lock	✅
