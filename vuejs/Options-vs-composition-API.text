@@ -1,0 +1,91 @@
+options API vs composition API
+============================
+1. Options API
+The Options API is the traditional way of defining components in Vue, used in Vue 2 and still supported in Vue 3.
+
+Structure:
+You define a component with an object that has various options (such as data, methods, computed, etc.):
+
+export default {
+  data() {
+    return {
+      message: 'Hello, World!'
+    };
+  },
+  computed: {
+    reversedMessage() {
+      return this.message.split('').reverse().join('');
+    }
+  },
+  methods: {
+    updateMessage(newMessage) {
+      this.message = newMessage;
+    }
+  }
+};
+Pros:
+Familiarity: The Options API is well-established and easy to understand, especially for beginners.
+
+Separation of Concerns: Each part of the component (data, methods, computed, etc.) is clearly defined, making it easy to find what you're looking for.
+
+Less Boilerplate: Simple and concise for smaller projects.
+
+Cons:
+Scalability Issues: In larger components, you might find it hard to manage logic that doesn't fit well into a single category (like separating concerns of one feature into multiple places).
+
+Less Reusable Logic: The logic inside the component is tightly coupled to the component, making it difficult to reuse across multiple components.
+
+2. Composition API
+The Composition API was introduced in Vue 3 and allows for more flexible and reusable code organization.
+
+Structure:
+Instead of using the data, methods, computed options, you define a function (called setup()) where you can use Vue’s reactive features directly:
+
+import { ref, computed } from 'vue';
+
+export default {
+  setup() {
+    const message = ref('Hello, World!');
+    
+    const reversedMessage = computed(() => {
+      return message.value.split('').reverse().join('');
+    });
+
+    const updateMessage = (newMessage) => {
+      message.value = newMessage;
+    };
+
+    return {
+      message,
+      reversedMessage,
+      updateMessage
+    };
+  }
+};
+
+Pros:
+Better Logic Reuse: You can extract logic into composable functions that can be shared across multiple components.
+
+Easier to Manage Complex Components: For larger components, it's easier to separate logic into separate functions, making the code more modular.
+
+More Control Over Reactivity: The Composition API gives you more control over reactivity and side effects, which can be helpful in complex scenarios.
+
+Cons:
+Steeper Learning Curve: Especially for beginners, the Composition API can be harder to understand, as it introduces new concepts like ref(), reactive(), and computed().
+
+More Boilerplate: For small components, the Composition API might feel like overkill and introduce unnecessary complexity.
+
+Key Differences:
+
+Feature	Options API	Composition API
+Component Structure	Defined by options (data, methods, etc.)	Defined by setup() function
+Reactivity	data uses Vue’s reactivity system (auto-reactive)	ref() and reactive() are explicit
+Logic Reusability	Less reusable logic	Highly reusable logic (composables)
+Learning Curve	Easier for beginners	Steeper learning curve
+Use Case	Small to medium-sized components	Large-scale applications, shared logic
+When to Use Which:
+Options API is great for small projects, quick prototypes, or when you need a familiar and straightforward approach.
+
+Composition API shines in larger projects or when you need to reuse logic across components or handle complex state management.
+
+Vue 3 supports both APIs, so you can mix and match them depending on your needs. Many developers use the Composition API for new codebases or complex components, while still relying on the Options API for simpler ones.
