@@ -1,0 +1,133 @@
+🔥 What are Interceptors?
+Interceptors are like middleware that sit between the request or response and allow you to modify them before they are handled by .then(), .catch(), or sent out.
+
+In short:
+
+Request interceptor → Modify request before it goes to server (e.g., add tokens, headers).
+
+Response interceptor → Modify/handle response before it reaches your app (e.g., refresh token, error handling globally).
+
+They are super useful for:
+
+Adding Authorization tokens
+
+Global error handling
+
+Logging requests/responses
+
+Retrying failed requests
+
+✨ Axios Interceptors in Vue 3
+Axios natively supports interceptors.
+
+Basic setup:
+
+import axios from 'axios';
+
+// Create an instance
+const api = axios.create({
+  baseURL: 'https://api.example.com',
+});
+
+// Request Interceptor
+api.interceptors.request.use(
+  (config) => {
+    // Add token before sending request
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    console.log('Request:', config);
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response Interceptor
+api.interceptors.response.use(
+  (response) => {
+    console.log('Response:', response);
+    return response;
+  },
+  (error) => {
+    if (error.response.status === 401) {
+      console.error('Unauthorized! Redirect to login.');
+      // Redirect or refresh token
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default api;
+
+Then use it in your component:
+
+import api from '@/services/api';
+
+async function getUser() {
+  const response = await api.get('/user');
+  console.log(response.data);
+}
+
+
+
+
+
+✨ Fetch Interceptors in Vue 3
+Fetch doesn’t have built-in interceptors like Axios 😢.
+But you can wrap fetch in a custom function to achieve the same!
+
+// fetchWrapper.js
+export async function fetchWithInterceptor(url, options = {}) {
+  // Request Interceptor Part
+  const token = localStorage.getItem('token');
+  const defaultHeaders = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+
+  const finalOptions = {
+    ...options,
+    headers: {
+      ...defaultHeaders,
+      ...options.headers,
+    },
+  };
+
+  try {
+    const response = await fetch(url, finalOptions);
+
+    // Response Interceptor Part
+    if (!response.ok) {
+      if (response.status === 401) {
+        console.error('Unauthorized access. Maybe refresh token?');
+      }
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Something went wrong');
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Fetch Error:', error);
+    throw error;
+  }
+}
+Use it in your component:
+
+import { fetchWithInterceptor } from '@/services/fetchWrapper';
+
+async function getUser() {
+  const user = await fetchWithInterceptor('https://api.example.com/user');
+  console.log(user);
+}
+
+
+📜 Key Differences: Axios vs Fetch
+
+Feature	Axios	    Fetch
+Interceptors	    Built-in (interceptors.request, interceptors.response)	Manual (wrap fetch)
+JSON Auto	        Auto parses JSON response	You must do response.json() manually
+Error Handling	    Errors if status != 2xx	You have to check response.ok manually
+Request Abortion	Has built-in support with cancel tokens	Use AbortController
