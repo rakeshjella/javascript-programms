@@ -1,0 +1,142 @@
+In Vue 3's Composition API, both ref() and shallowRef() are used to create reactive references, but they behave differently in terms of how deeply they track changes in nested objects or arrays. Here's a breakdown of the differences:
+
+1. ref()
+Purpose: ref() is used to create a reactive reference to a value, and it makes that value reactive at any depth.
+
+How it works: When you use ref(), Vue will make the value reactive, which means that if the value is an object or an array, Vue will track changes to the object's properties or array's elements recursively.
+
+Example
+
+import { ref } from 'vue';
+
+export default {
+  setup() {
+    const person = ref({
+      name: 'John',
+      age: 30
+    });
+
+    // Vue will reactively track changes to properties inside the object
+    person.value.name = 'Jane'; // This will trigger reactivity
+
+    return { person };
+  }
+};
+Nested Reactivity: If you modify a nested property of an object, Vue will still reactively track that property.
+
+
+2. shallowRef()
+Purpose: shallowRef() creates a reactive reference that does not track changes within nested objects or arrays. It only tracks reactivity on the root level of the reference.
+
+How it works: When you use shallowRef(), Vue makes the root object (or array) itself reactive, but it does not create reactivity for any nested properties or items inside the object or array.
+
+import { shallowRef } from 'vue';
+
+export default {
+  setup() {
+    const person = shallowRef({
+      name: 'John',
+      age: 30
+    });
+
+    // Changing the root object will trigger reactivity
+    person.value = { name: 'Jane', age: 25 }; // This will trigger reactivity
+
+    // But changes to the nested object properties will not trigger reactivity
+    person.value.name = 'Mike'; // No reactivity unless the whole object is replaced
+
+    return { person };
+  }
+};
+
+Shallow Reactivity: In this case, modifying the nested properties (like person.value.name) won't trigger reactivity because shallowRef() only makes the reference itself reactive, not the properties within it.
+
+Key Differences:
+
+Feature	ref()	shallowRef()
+Reactivity Depth	Tracks nested properties (deep reactivity)	Only tracks the root object or array (shallow reactivity)
+Use Case	Used when you need full reactivity for nested objects or arrays	Used when you want reactivity only at the top level (and avoid deep tracking)
+Performance	Can be more resource-intensive if the object is deeply nested	More performant for large, nested objects or arrays
+Change Detection	Reactively tracks changes to nested properties	Reactivity only on changes to the reference itself (not nested properties)
+When to Use Each:
+Use ref(): When you need deep reactivity or you want Vue to track changes in nested properties of objects or arrays.
+
+Use shallowRef(): When you don't need Vue to track changes at a deep level (for performance reasons or when you only care about changes at the root level).
+
+
+reactive() vs shallowReactive()
+=================================
+===================================
+================================
+
+In Vue 3's Composition API, both reactive() and shallowReactive() are used to create reactive objects, but they differ in how they handle the reactivity of nested properties. Here's a breakdown of the differences:
+
+1. reactive()
+Purpose: reactive() is used to create a deeply reactive object. When you use reactive(), Vue will track changes to both the root object and any nested properties or elements within that object.
+
+How it works: Vue converts the entire object (and its nested properties) into reactive data. This means that changes to any property of the object (even if it's nested) will trigger reactivity.
+
+Example:
+import { reactive } from 'vue';
+
+export default {
+  setup() {
+    const person = reactive({
+      name: 'John',
+      address: {
+        street: '123 Main St',
+        city: 'Somewhere'
+      }
+    });
+
+    // Vue tracks changes at both the root and nested levels
+    person.name = 'Jane'; // Triggers reactivity
+    person.address.city = 'Anywhere'; // Triggers reactivity
+
+    return { person };
+  }
+};
+
+
+Nested Reactivity: Changes to nested properties, like person.address.city, will trigger reactivity, and Vue will track those changes as well.
+
+
+2. shallowReactive()
+Purpose: shallowReactive() creates a shallow reactive object, meaning that it only makes the top-level properties reactive. Nested objects or arrays inside the root object will not be deeply reactive.
+
+How it works: When you use shallowReactive(), Vue only makes the properties of the object at the root level reactive. Nested properties (e.g., properties inside nested objects or arrays) will not be tracked reactively unless the nested object itself is made reactive explicitly.
+
+import { shallowReactive } from 'vue';
+
+export default {
+  setup() {
+    const person = shallowReactive({
+      name: 'John',
+      address: {
+        street: '123 Main St',
+        city: 'Somewhere'
+      }
+    });
+
+    // Vue tracks changes at the root level only
+    person.name = 'Jane'; // Triggers reactivity
+    person.address.city = 'Anywhere'; // Does not trigger reactivity
+
+    return { person };
+  }
+};
+
+
+Shallow Reactivity: In this case, changing person.name will trigger reactivity, but changing person.address.city will not trigger reactivity because address is a nested object, and Vue doesn't track it deeply.
+
+Key Differences:
+
+Feature	reactive()	shallowReactive()
+Reactivity Depth	Deep reactivity (reactive for both root and nested properties)	Shallow reactivity (reactive only at the root level)
+Tracking Nested Properties	Tracks changes to nested properties and arrays	Does not track nested properties (only tracks the root properties)
+Use Case	When you need full reactivity for an entire object, including its nested properties	When you only care about changes at the root level and want to optimize performance
+Performance	More resource-intensive because it tracks deeply	More performant for large objects or arrays with nested structures
+When to Use Each:
+Use reactive(): When you need Vue to reactively track every change, including nested properties inside objects or arrays.
+
+Use shallowReactive(): When you want to track changes only at the top level of an object and do not need deep reactivity, often for performance reasons.
