@@ -1,15 +1,22 @@
-Cross-Origin Resource Sharing (CORS) is a security feature implemented by web browsers that restricts web pages from making requests to domains different from the domain from which the web page was served. In simpler terms, CORS is a mechanism that allows or denies web applications running at one origin (protocol + domain + port) to make requests for resources (like APIs) hosted on a different origin.
+Cross-Origin Resource Sharing (CORS) is a security feature implemented by web browsers that restricts web pages from making requests to domains different from the domain from which the web page was served.
+In simpler terms, CORS is a mechanism that allows or denies web applications running at one origin (protocol + domain + port) to make requests for resources (like APIs) hosted on a different origin.
 
 CORS is implemented to prevent malicious websites from making unauthorized requests to a different domain and accessing potentially sensitive data (e.g., user information, etc.).
 
 CORS Flow:
-Preflight Request (OPTIONS): If the HTTP request is not a simple request (like a request with custom headers),
+Preflight Request (OPTIONS):
+--------------------------------
+If the HTTP request is not a simple request (like a request with custom headers),
 the browser first sends an OPTIONS request to the server to ask if the actual request is allowed.
 
-Actual Request: If the server responds with the appropriate CORS headers (e.g., Access-Control-Allow-Origin),
+Actual Request:
+----------------
+If the server responds with the appropriate CORS headers (e.g., Access-Control-Allow-Origin),
 the browser proceeds with the actual request.
 
-Response Handling: If the response includes the proper headers, the data is passed back to the frontend.
+Response Handling:
+-----------------
+ If the response includes the proper headers, the data is passed back to the frontend.
 
 CORS Headers
 Common CORS headers include:
@@ -60,6 +67,7 @@ axios.get('http://your-api.com/data', { withCredentials: true })
 On the server, you'll also need to allow credentials by including the Access-Control-Allow-Credentials header:
 
 app.use(cors({ origin: 'http://your-frontend-url.com', credentials: true }));
+
 5. Handling CORS Errors in Vue.js
 If you encounter CORS issues, you'll typically see errors like:
 No 'Access-Control-Allow-Origin' header is present on the requested resource.
