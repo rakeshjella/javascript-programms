@@ -1,0 +1,136 @@
+🔥 What are SOLID principles?
+SOLID is a set of five principles for writing clean, maintainable, and scalable code, originally for object-oriented programming but super useful everywhere — including frontend development like Vue.js!
+
+Here's a quick breakdown:
+
+S — Single Responsibility Principle (SRP): A component/module/class should have one and only one reason to change.
+
+O — Open/Closed Principle (OCP): Software entities should be open for extension but closed for modification.
+
+L — Liskov Substitution Principle (LSP): Subtypes should be substitutable for their base types without altering the correctness of the program.
+
+I — Interface Segregation Principle (ISP): Don’t force a component/class to depend on methods it doesn't use.
+
+D — Dependency Inversion Principle (DIP): High-level modules should not depend on low-level modules; both should depend on abstractions.
+
+✨ How to apply SOLID in Vue 3 Composition API
+1. Single Responsibility Principle
+In Vue 3, split logic into small, focused composables (useSomething functions).
+
+Example:
+
+// useFetch.js
+import { ref } from 'vue';
+
+export function useFetch(url) {
+  const data = ref(null);
+  const error = ref(null);
+
+  async function fetchData() {
+    try {
+      const response = await fetch(url);
+      data.value = await response.json();
+    } catch (err) {
+      error.value = err;
+    }
+  }
+
+  return { data, error, fetchData };
+}
+
+➡️ This composable handles only fetching — not form validation, not UI concerns.
+
+2. Open/Closed Principle
+Design components and composables that can be extended without modifying the core code.
+
+Example:
+
+// useNotification.js
+export function useNotification() {
+  const notify = (message, type = 'info') => {
+    // Default notification logic
+    console.log(`[${type.toUpperCase()}] ${message}`);
+  };
+
+  return { notify };
+}
+
+// Extend elsewhere without changing `useNotification`
+function customNotify(message) {
+  const { notify } = useNotification();
+  notify(message, 'success');
+}
+
+
+➡️ Core composable is closed for modification but open for extension.
+
+3. Liskov Substitution Principle
+Design components or composables where derived or specialized versions can replace the base version without breaking things.
+
+Example:
+<!-- BaseButton.vue -->
+<template>
+  <button><slot /></button>
+</template>
+
+<!-- IconButton.vue -->
+<template>
+  <BaseButton>
+    <Icon :name="icon" />
+  </BaseButton>
+</template>
+<script setup>
+import BaseButton from './BaseButton.vue';
+import Icon from './Icon.vue';
+defineProps({ icon: String });
+</script>
+➡️ IconButton can replace BaseButton anywhere — still behaves like a button.
+
+4. Interface Segregation Principle
+In Vue, don’t cram unrelated features into a single composable/component.
+
+Bad example (violating ISP):
+
+function useAuth() {
+  function login() { /* login logic */ }
+  function logout() { /* logout logic */ }
+  function validateForm() { /* form validation */ }
+  function sendAnalytics() { /* analytics */ }
+}
+
+Better (respecting ISP):
+
+function useAuth() { /* only login/logout */ }
+function useFormValidation() { /* only validation */ }
+function useAnalytics() { /* only analytics */ }
+
+
+5. Dependency Inversion Principle
+In Vue, inject dependencies rather than hardcoding them.
+
+Example using Vue's provide / inject:
+
+// authService.js
+export const AuthService = {
+  login() { /* login */ },
+  logout() { /* logout */ }
+};
+
+// Provide in a parent
+provide('authService', AuthService);
+
+// Inject in a child
+const authService = inject('authService');
+authService.login();
+
+
+➡️ Component depends on an abstraction (authService) not a specific implementation.
+
+🧠 Summary Table
+
+Principle	    Vue 3 Tip
+SRP	            Create focused composables (useX)
+OCP	            Extend functionality without modifying core code
+LSP	            Create interchangeable components
+ISP	            Split composables logically
+DIP	            Use provide/inject to decouple
