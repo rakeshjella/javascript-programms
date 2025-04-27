@@ -1,0 +1,99 @@
+what is Agile
+-------
+Agile is a way of managing projects — especially in software development — that focuses on flexibility, collaboration, and delivering small, working parts quickly rather than trying to build the whole thing at once.
+
+Instead of spending months planning everything perfectly before starting, Agile teams:
+
+Build a small part → test it → get feedback → improve it → repeat.
+
+Work in short cycles called iterations or sprints (usually 1–4 weeks).
+
+Regularly meet to check progress and adjust plans.
+
+Prioritize customer feedback and changing needs over sticking to a rigid plan.
+
+Agile is more like steering a small boat (adjusting quickly) than piloting a giant ship (slow and hard to change).
+
+Would you like me to explain some popular Agile methods too, like Scrum or Kanban? 🚀
+
+
+
+
+
+
+
+You said:
+yes
+
+
+ChatGPT said:
+Awesome! Let’s break it down simply:
+
+1. Scrum
+Most popular Agile method.
+
+Work is divided into short cycles called Sprints (usually 2 weeks).
+
+At the start, the team picks what work they can complete in the Sprint.
+
+Daily quick meeting called a Daily Scrum (or Standup) — 15 minutes to check in:
+
+What did I do yesterday?
+
+What will I do today?
+
+Any blockers?
+
+After the Sprint, they review the work and reflect on how to improve next time (called a Retrospective).
+
+Key roles:
+
+Product Owner (decides what needs to be built)
+
+Scrum Master (helps the team stay on track)
+
+Development Team (the people building the product)
+
+2. Kanban
+Visual way of managing work.
+
+Use a Kanban board with columns like:
+
+To Do → In Progress → Done
+
+Team members move tasks across the board as they work on them.
+
+Focus is on limiting the number of tasks in progress at once to avoid overload.
+
+No fixed sprints — work flows continuously.
+
+In short:
+
+Scrum = Structured, Sprint-based, Time-boxed
+
+Kanban = Flexible, Flow-based, Visual
+
+📋 Scrum Board Example (during a Sprint)
+
+To Do	In Progress	Done
+Build login page	Create API backend	Design homepage
+Write unit tests	Fix payment bug	
+Update user guide		
+At the start of the Sprint, all tasks are in "To Do".
+
+As the team works, they move tasks to "In Progress".
+
+Once a task is completed, it goes to "Done".
+
+After the Sprint ends, the team reviews all the "Done" items.
+
+📋 Kanban Board Example
+
+Backlog	To Do	Doing	Done
+Research new features	Set up database	Code profile page	Fix login issue
+Plan new marketing campaign	Test payment system		Deploy homepage
+Work flows continuously from Backlog → To Do → Doing → Done.
+
+No strict 2-week sprint — team just keeps moving tasks across.
+
+Limit: maybe only 2-3 tasks allowed in "Doing" at once!
