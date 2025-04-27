@@ -97,3 +97,62 @@ Work flows continuously from Backlog → To Do → Doing → Done.
 No strict 2-week sprint — team just keeps moving tasks across.
 
 Limit: maybe only 2-3 tasks allowed in "Doing" at once!
+
+
+
+Agile methodology is a way of managing projects that emphasizes:
+
+Flexibility
+
+Continuous improvement
+
+Customer feedback
+
+Small, fast deliveries of working product
+
+Instead of making a huge plan at the start (like in traditional Waterfall methods), Agile teams build and deliver in small pieces (called iterations or sprints), learn from each piece, and adapt quickly.
+
+Key principles of Agile methodology:
+Individuals and interactions over processes and tools.
+
+Working software over comprehensive documentation.
+
+Customer collaboration over contract negotiation.
+
+Responding to change over following a strict plan.
+
+(This comes from something called the Agile Manifesto, created in 2001 by a group of software experts.)
+
+Common Agile Frameworks
+Scrum (organized into sprints, with clear roles)
+
+Kanban (visual task management, continuous flow)
+
+Extreme Programming (XP) (focuses on technical practices like coding standards and testing)
+
+Example in Simple Words:
+Imagine you’re building a mobile app.
+
+Waterfall way: Plan everything for 6 months, then build it, then test, then launch.
+
+Agile way: Build a basic login system first → show it to users → improve it → build the next feature → show again → keep adjusting until you have a great app.
+
+
+simple table showing the difference between Agile and Waterfall:
+
+
+Feature	                Waterfall	                                        Agile
+Approach	            Step-by-step, one big plan	                        Flexible, small steps (iterations)
+Planning	            Heavy planning at the beginning	                    Planning happens continuously
+Changes	                Hard to make changes	                            Easy to adapt and change anytime
+Delivery	            Final product delivered at the end	                Small working parts delivered often
+Customer Involvement	Involved mainly at start and end	                Involved throughout the project
+Testing	                After building everything	                        Testing happens with every small piece
+Risk	                High (if plan is wrong)	                            Low (problems caught early)
+Best for	            Clear, fixed requirements	                        Changing, evolving requirements
+🔔 Summary:
+
+Waterfall = "Plan everything, then build it."
+
+Agile = "Build small parts, get feedback, adjust, repeat."
+
